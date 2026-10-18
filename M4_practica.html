@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Práctica Misión 4</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@600;800&display=swap">
+<link rel="stylesheet" href="practica.css">
+<style>
+/* Mission 4 only: hands-on sharing and packing boards */
+.lab { display: grid; gap: 12px; justify-items: center; background: #fff; border-radius: 16px; padding: 14px; }
+.lab .pile { display: flex; flex-wrap: wrap; gap: 2px; justify-content: center; font-size: 1.9rem; min-height: 2.4rem; max-width: 420px; }
+.lab .targets { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+.lab .bag { font-size: 1.5rem; }
+.lab .lab-btns { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.lab .msg { font: 600 1.15rem var(--display); color: var(--ink-2); min-height: 1.5em; text-align: center; }
+</style>
+
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <img class="mascot" id="mascot" src="mascot.png" alt="">
+  <div>
+    <h1>Práctica · <mark>Misión 4</mark></h1>
+    <p class="sub">¿Qué es dividir?</p>
+  </div>
+  <div class="head-btns">
+    <a class="back-btn" href="index.html">← Misiones</a>
+    <button class="table-btn" id="tableBtn">🔢 Tabla</button>
+    <button class="video-btn" id="videoBtn">▶ Video</button>
+  </div>
+</header>
+
+<div class="video-box" id="videoBox">
+  <video controls preload="none" src="M4_que_es_dividir.mp4"></video>
+</div>
+
+<section class="ptable-box" id="tableBox">
+  <p>Tabla pitagórica: tocá un número de la tabla y mirá su fila y su columna.</p>
+  <table class="ptable" id="ptable"></table>
+  <div class="readout" id="readout"></div>
+</section>
+
+<nav class="levels" id="levels"></nav>
+
+<main class="card" id="card"></main>
+
+</div>
+
+<script src="practica.js"></script>
+<script>
+// ---------- Misión 4: ¿qué es dividir? ----------
+const ITEMS = [['🍬', 'caramelos'], ['🍓', 'frutillas'], ['🍪', 'galletitas'], ['⚽', 'pelotas'], ['🖍️', 'crayones']];
+
+// Hands-on board: share N items among K plates, one round at a time.
+function dealPic(N, K, em) {
+  const lab = h('div', 'lab'), pile = h('div', 'pile'), tg = h('div', 'targets'), msg = h('div', 'msg');
+  const btns = h('div', 'lab-btns'), go = h('button', '', 'Repartir una vuelta'), again = h('button', 'alt', 'Empezar de nuevo');
+  let left, plates;
+  const draw = () => {
+    pile.textContent = em.repeat(left);
+    tg.innerHTML = '';
+    plates.forEach(k => tg.appendChild(h('div', 'bag', em.repeat(k) || '&nbsp;')));
+  };
+  const reset = () => { left = N; plates = Array(K).fill(0); go.disabled = false; msg.textContent = `Hay ${N} y ${K} platos. Repartí de a uno.`; draw(); };
+  go.onclick = () => {
+    plates = plates.map(k => k + 1); left -= K; draw();
+    if (left < K) { go.disabled = true; msg.textContent = '¡Se terminaron! Contá cuántos hay en un plato.'; }
+    else msg.textContent = `Quedan ${left}. Otra vuelta…`;
+  };
+  again.onclick = reset;
+  btns.append(go, again); lab.append(pile, tg, btns, msg); reset();
+  const w = h('div', 'pic'); w.appendChild(lab); return w;
+}
+// Hands-on board: pack N items in boxes of `size`.
+function packPic(N, size, em) {
+  const lab = h('div', 'lab'), pile = h('div', 'pile'), tg = h('div', 'targets'), msg = h('div', 'msg');
+  const btns = h('div', 'lab-btns'), go = h('button', '', 'Llenar una caja'), again = h('button', 'alt', 'Empezar de nuevo');
+  let left, boxes;
+  const draw = () => {
+    pile.textContent = em.repeat(left);
+    tg.innerHTML = '';
+    for (let i = 0; i < boxes; i++) tg.appendChild(h('div', 'bag box', em.repeat(size)));
+  };
+  const reset = () => { left = N; boxes = 0; go.disabled = false; msg.textContent = `Hay ${N}. Cada caja lleva ${size}.`; draw(); };
+  go.onclick = () => {
+    left -= size; boxes++; draw();
+    if (left < size) { go.disabled = true; msg.textContent = '¡Listo! Contá las cajas.'; }
+    else msg.textContent = `${boxes} ${boxes === 1 ? 'caja' : 'cajas'}… quedan ${left}.`;
+  };
+  again.onclick = reset;
+  btns.append(go, again); lab.append(pile, tg, btns, msg); reset();
+  const w = h('div', 'pic'); w.appendChild(lab); return w;
+}
+
+const divFill = (N, K, label) => ({
+  kind: 'fill', parts: [String(N), ':', String(K), '=', null], labels: [label],
+  solution: [N / K], validate: v => v[0] === N / K,
+});
+
+function qShare(i) {
+  const [N, K] = pick([[[6, 2], [8, 2], [6, 3]], [[9, 3], [10, 2], [8, 4]], [[12, 4], [12, 3], [15, 5]],
+                       [[16, 4], [18, 3], [20, 4]], [[20, 5], [24, 4], [18, 6]]][i]);
+  const [em, name] = pick(ITEMS);
+  return {
+    ...divFill(N, K, 'en cada plato'),
+    prompt: `Repartí ${N} ${name} en ${K} platos, para que todos tengan lo mismo. ¿Cuántos hay en cada plato?<br><small>Podés repartir con el botón.</small>`,
+    pic: () => dealPic(N, K, em),
+    hint: `Tocá “Repartir una vuelta” hasta que se terminen. O pensá: ¿${K} por cuánto da ${N}?`,
+    why: `${N} : ${K} = ${N / K}, porque ${K} × ${N / K} = ${N}.`,
+  };
+}
+function qPack(i) {
+  const [N, size] = pick([[[6, 2], [8, 4], [9, 3]], [[10, 2], [12, 4], [10, 5]], [[12, 3], [15, 3], [16, 4]],
+                          [[18, 6], [20, 4], [21, 3]], [[24, 6], [20, 5], [24, 4]]][i]);
+  const [em, name] = pick(ITEMS);
+  return {
+    ...divFill(N, size, 'cajas'),
+    prompt: `Hay ${N} ${name}. En cada caja van ${size}. ¿Cuántas cajas se pueden llenar?<br><small>Podés llenar las cajas con el botón.</small>`,
+    pic: () => packPic(N, size, em),
+    hint: `Llená cajas de ${size} hasta que no queden. O pensá: ¿${size} por cuánto da ${N}?`,
+    why: `${N} : ${size} = ${N / size} cajas, porque ${N / size} × ${size} = ${N}.`,
+  };
+}
+
+const SHARE = [
+  (N, K) => `La abuela reparte ${N} figuritas entre sus ${K} nietos, a todos igual. ¿Cuántas le da a cada uno?`,
+  (N, K) => `${N} chicos se ordenan en ${K} filas iguales. ¿Cuántos chicos hay en cada fila?`,
+  (N, K) => `Una panadería reparte ${fmt(N)} medialunas en ${K} bares, en partes iguales. ¿Cuántas recibe cada bar?`,
+];
+const GROUP = [
+  (N, K) => `Juli arma cajas de ${K} alfajores. Tiene ${N} alfajores. ¿Cuántas cajas puede armar?`,
+  (N, K) => `En cada estante entran ${K} revistas. ¿Cuántos estantes se llenan con ${N} revistas?`,
+  (N, K) => `Cada triciclo lleva 3 ruedas. ¿Cuántos triciclos se arman con ${fmt(N)} ruedas?`,
+];
+function qProblem(i) {
+  if (i === 4) {
+    return {
+      kind: 'multi',
+      prompt: 'Juli cocinó 35 empanadas y las puso en 7 platos, todos con la misma cantidad. ¿Qué cálculos sirven para saber cuántas hay en cada plato?<br><small>Puede haber más de uno.</small>',
+      options: shuffle([
+        { t: '35 : 7 = 5', ok: true }, { t: '7 × 5 = 35', ok: true }, { t: '5 + 5 + 5 + 5 + 5 + 5 + 5 = 35', ok: true },
+        { t: '35 + 7 = 42', ok: false }, { t: '35 − 7 = 28', ok: false },
+      ]),
+      hint: 'Hay 7 platos con la misma cantidad. ¿Qué número, 7 veces, da 35?',
+      why: 'Sirven 35 : 7 = 5, 7 × 5 = 35 y la suma de siete 5. En cada plato hay 5 empanadas.',
+    };
+  }
+  const share = i % 2 === 0;
+  let N, K, txt;
+  if (i === 3) {                       // big round numbers, like the book
+    const s = Math.random() < 0.5;
+    if (s) { K = pick([2, 3, 4]); N = K * pick([100, 200, 300]); txt = SHARE[2](N, K); }
+    else { K = 3; N = 3 * pick([100, 200, 300]); txt = GROUP[2](N, K); }
+    return fillProblem(N, K, txt, s);
+  }
+  K = i < 2 ? rnd(2, 4) : rnd(4, 8);
+  const r = i < 2 ? rnd(2, 5) : rnd(4, 9);
+  N = K * r;
+  txt = share ? pick(SHARE.slice(0, 2))(N, K) : pick(GROUP.slice(0, 2))(N, K);
+  return fillProblem(N, K, txt, share);
+}
+function fillProblem(N, K, txt, share) {
+  const r = N / K;
+  return {
+    kind: 'fill', parts: [null, ':', null, '=', null],
+    labels: share ? ['cantidad', 'grupos', 'en cada uno'] : ['cantidad', 'en cada uno', 'grupos'],
+    solution: [N, K, r], validate: v => v[0] === N && v[1] === K && v[2] === r,
+    prompt: txt + '<br><small>Escribí la división.</small>',
+    hint: share ? `Se reparte ${fmt(N)} en ${K} partes iguales: ${fmt(N)} : ${K}. ¿${K} por cuánto da ${fmt(N)}?`
+                : `Se arman grupos de ${K} con ${fmt(N)}: ${fmt(N)} : ${K}. ¿Cuántas veces entra el ${K}?`,
+    why: `${fmt(N)} : ${K} = ${fmt(r)}, porque ${K} × ${fmt(r)} = ${fmt(N)}.`,
+  };
+}
+
+function qReverse(i) {
+  if (i < 2) {
+    const K = i === 0 ? rnd(2, 5) : rnd(4, 9), r = i === 0 ? rnd(2, 5) : rnd(4, 9), N = K * r;
+    return {
+      kind: 'fill', parts: [`${K} ×`, null, `= ${N}`, '   entonces   ', `${N} : ${K} =`, null], labels: ['', ''],
+      solution: [r, r], validate: v => v[0] === r && v[1] === r,
+      prompt: 'Dividir es multiplicar al revés. Completá las dos.',
+      hint: `¿${K} por cuánto da ${N}? Ese mismo número es el resultado de ${N} : ${K}.`,
+      why: `${K} × ${r} = ${N}, entonces ${N} : ${K} = ${r}.`,
+    };
+  }
+  if (i < 4) {
+    const K = i === 2 ? pick([8, 10, 5]) : rnd(3, 9), r = i === 2 ? 10 : rnd(3, 9), N = K * r;
+    return {
+      kind: 'fill', parts: [null, ':', String(K), '=', String(r)], solution: [N], validate: v => v[0] === N,
+      prompt: `Se escribió un número en la calculadora, se lo dividió por ${K} y dio ${r}. ¿Qué número era?`,
+      hint: `Pensalo con platos: ${K} platos con ${r} en cada uno. ¿Cuántos había en total?`,
+      why: `${K} × ${r} = ${N}. Comprobamos: ${N} : ${K} = ${r}.`,
+    };
+  }
+  const k = pick([7, 6, 5, 4]);
+  return {
+    kind: 'fill', parts: [`${k * 100} : ${k} =`, null], solution: [100], validate: v => v[0] === 100,
+    prompt: `Lucía pone ${k} bombones en cada caja. Tiene ${k * 100} bombones. ¿Cuántas cajas arma?`,
+    hint: `Pensá: ¿${k} por cuánto da ${k * 100}?`,
+    why: `${k} × 100 = ${k * 100}, entonces ${k * 100} : ${k} = 100 cajas.`,
+  };
+}
+
+function qTable(i) {
+  if (i === 4) {
+    const K = rnd(3, 9), r = rnd(3, 9), N = K * r, wrong = Math.random() < 0.5, shown = wrong ? r + pick([1, -1]) : r;
+    return {
+      kind: 'choice', prompt: `¿Está bien esta división? <span class="big">${N} : ${K} = ${shown}</span>`,
+      options: [{ t: 'Sí, está bien', ok: !wrong }, { t: 'No, está mal', ok: wrong }],
+      hint: `Comprobá multiplicando: ¿${K} × ${shown} da ${N}?`,
+      why: `${K} × ${shown} = ${K * shown}${wrong ? `, no ${N}. Lo correcto es ${N} : ${K} = ${r}.` : `. ¡Está bien!`}`,
+    };
+  }
+  const K = i < 2 ? rnd(2, 5) : rnd(6, 9), r = i < 2 ? rnd(2, 6) : rnd(4, 9), N = K * r;
+  return {
+    ...divFill(N, K, ''),
+    prompt: 'Resolvé. Podés usar la 🔢 Tabla.',
+    hint: `En la 🔢 Tabla buscá la fila del ${K}, seguí hasta encontrar el ${N} y mirá arriba de la columna.`,
+    why: `${N} : ${K} = ${r}, porque ${K} × ${r} = ${N}.`,
+  };
+}
+
+const MISSION_LEVELS = [
+  { name: 'Repartí vos', make: qShare },
+  { name: 'Armá paquetes', make: qPack },
+  { name: 'Problemas', make: qProblem },
+  { name: 'Multiplicar al revés', make: qReverse },
+  { name: 'Con la tabla', make: qTable },
+];
+startPractice({ key: 'mision4-practica', levels: MISSION_LEVELS });
+</script>
+</body>
+</html>

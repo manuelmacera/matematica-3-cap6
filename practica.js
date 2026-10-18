@@ -77,12 +77,14 @@ function startLevel(k) {
 }
 
 let seen = new Set();
+// Two questions are the same if the wording and the numbers match.
+const sig = q => q.prompt + '|' + JSON.stringify(q.parts || (q.options || []).map(o => o.t) || [q.g, q.e]) + '|' + (q.g ?? '') + 'x' + (q.e ?? '');
 function nextQuestion() {
   for (let k = 0; k < 20; k++) {   // avoid repeating a question inside one level
     q = LEVELS[level].make(idx);
-    if (!seen.has(q.prompt)) break;
+    if (!seen.has(sig(q))) break;
   }
-  seen.add(q.prompt); tries = 0; finished = false;
+  seen.add(sig(q)); tries = 0; finished = false;
   render();
 }
 
