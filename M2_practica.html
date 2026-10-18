@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Práctica Misión 2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@600;800&display=swap">
+<link rel="stylesheet" href="practica.css">
+
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <img class="mascot" id="mascot" src="mascot.png" alt="">
+  <div>
+    <h1>Práctica · <mark>Misión 2</mark></h1>
+    <p class="sub">Multiplicar por 10, 100 y 1.000</p>
+  </div>
+  <div class="head-btns">
+    <a class="back-btn" href="index.html">← Misiones</a>
+    <button class="table-btn" id="tableBtn">🔢 Tabla</button>
+    <button class="video-btn" id="videoBtn">▶ Video</button>
+  </div>
+</header>
+
+<div class="video-box" id="videoBox">
+  <video controls preload="none" src="M2_por_10_100_1000.mp4"></video>
+</div>
+
+<section class="ptable-box" id="tableBox">
+  <p>Tabla pitagórica: tocá un número de la tabla y mirá su fila y su columna.</p>
+  <table class="ptable" id="ptable"></table>
+  <div class="readout" id="readout"></div>
+</section>
+
+<nav class="levels" id="levels"></nav>
+
+<main class="card" id="card"></main>
+
+</div>
+
+<script src="practica.js"></script>
+<script>
+// ---------- Misión 2: multiplicar por 10, 100 y 1.000 ----------
+const ZEROS = { 10: 1, 100: 2, 1000: 3 };
+const ceros = z => (z === 1 ? 'un cero' : `${z} ceros`);
+
+function qMoney(i) {
+  const [v, n] = [[10, rnd(2, 4)], [100, rnd(2, 5)], [10, rnd(5, 9)], [1000, rnd(2, 5)], [100, rnd(6, 9)]][i];
+  const what = v < 100 ? 'monedas' : 'billetes';
+  return {
+    kind: 'mult', g: n, e: v,
+    prompt: '¿Cuánta plata hay? Escribí la multiplicación.',
+    pic: () => moneyPic([[v, n]]),
+    labels: [what, `de $${fmt(v)}`],
+    hint: `Contá cuántos ${what} hay. Cada uno vale $${fmt(v)}. Contá de ${fmt(v)} en ${fmt(v)}.`,
+    why: `${n} ${what} de $${fmt(v)}: ${n} × ${fmt(v)} = ${fmt(n * v)}`,
+  };
+}
+
+function zerosEq(a, m, flip) {
+  const left = flip ? [fmt(m), '×', fmt(a)] : [fmt(a), '×', fmt(m)];
+  return {
+    kind: 'fill', parts: [...left, '=', null], solution: [a * m], validate: v => v[0] === a * m,
+    hint: `${fmt(m)} tiene ${ceros(ZEROS[m])}: escribí ${a} y agregale ${ceros(ZEROS[m])} al final.`,
+    why: `${left.join(' ')} = ${fmt(a * m)}`,
+  };
+}
+function qZeros(i) {
+  if (i < 3) return { ...zerosEq(rnd(2, 9), [10, 100, 1000][i]), prompt: 'Resolvé.' };
+  const a = rnd(12, 98), m = pick([10, 100]);
+  if (i === 3) return { ...zerosEq(a, m, Math.random() < 0.5), prompt: 'Resolvé. Acordate: el orden no cambia el resultado.' };
+  const tens = Math.floor(a / 10), units = a % 10 || 5, n = tens * 10 + units;
+  const good = n * m;
+  const wrong = new Set([+(`${tens}0${units}`) * (m === 10 ? 1 : 10), n * (m === 10 ? 100 : 10), good + 10]);
+  wrong.delete(good);
+  const flip = Math.random() < 0.5;
+  return {
+    kind: 'choice',
+    prompt: `¿Cuál es el resultado de <span class="big">${flip ? `${fmt(m)} × ${n}` : `${n} × ${fmt(m)}`}</span>?`,
+    options: shuffle([{ t: fmt(good), ok: true }, ...[...wrong].slice(0, 3).map(w => ({ t: fmt(w), ok: false }))]),
+    hint: `Las cifras de ${n} saltan a la izquierda y aparecen ${ceros(ZEROS[m])} al final, no en el medio.`,
+    why: `${n} × ${fmt(m)} = ${fmt(good)}: ${n} con ${ceros(ZEROS[m])} al final.`,
+  };
+}
+
+function qRound(i) {
+  // [small a, small b, zeros on a, zeros on b]
+  const [a, b, za, zb] = [
+    [rnd(2, 4), rnd(2, 5), 0, 1], [rnd(2, 4), rnd(2, 4), 0, 2], [rnd(2, 4), rnd(2, 4), 1, 1],
+    [rnd(3, 6), rnd(4, 8), 0, 1], [rnd(2, 5), rnd(2, 5), 1, 2],
+  ][i];
+  const A = a * 10 ** za, B = b * 10 ** zb, z = za + zb, P = A * B;
+  return {
+    kind: 'fill', parts: [fmt(A), '×', fmt(B), '=', null], solution: [P], validate: v => v[0] === P,
+    prompt: 'Resolvé con números redondos.',
+    hint: `Hacé la cuenta chiquita sin ceros: ${a} × ${b} (podés usar la 🔢 Tabla). Después agregá ${ceros(z)}.`,
+    why: `${a} × ${b} = ${a * b}, y con ${ceros(z)}: ${fmt(A)} × ${fmt(B)} = ${fmt(P)}`,
+  };
+}
+
+function qMissing(i) {
+  if (i === 4) {
+    const target = pick([30, 300, 3000, 500, 1000, 10000, 4000]);
+    const m = target % 1000 === 0 && target >= 2000 ? 1000 : target % 100 === 0 ? 100 : 10;
+    return {
+      kind: 'fill', parts: [null, '×', null, '=', fmt(target)], labels: ['', ''],
+      solution: [target / m, m],
+      validate: v => v[0] * v[1] === target && (ZEROS[v[0]] || ZEROS[v[1]]),
+      prompt: `Inventá una multiplicación por 10, por 100 o por 1.000 que dé ${fmt(target)}.`,
+      hint: `Uno de los dos números tiene que ser 10, 100 o 1.000. ¿Qué número, con ceros agregados, da ${fmt(target)}?`,
+      why: `Por ejemplo: ${fmt(target / m)} × ${fmt(m)} = ${fmt(target)}. Hay otras que también sirven.`,
+    };
+  }
+  let parts, sol, m, n;
+  if (i === 0) { n = rnd(2, 9); m = 100; parts = [String(n), '×', null, '=', fmt(n * m)]; sol = m; }
+  if (i === 1) { n = rnd(11, 99); m = 10; parts = [null, '×', '10', '=', fmt(n * m)]; sol = n; }
+  if (i === 2) { n = rnd(11, 60); m = pick([100, 1000]); parts = [String(n), '×', null, '=', fmt(n * m)]; sol = m; }
+  if (i === 3) { n = rnd(2, 10); m = 1000; parts = [null, '×', '1.000', '=', fmt(n * m)]; sol = n; }
+  const askM = sol === m;
+  return {
+    kind: 'fill', parts, solution: [sol], validate: v => v[0] === sol,
+    prompt: 'Completá el número que falta.',
+    hint: askM ? `${fmt(n * m)} es ${n} con ${ceros(ZEROS[m])}. ¿Qué número tiene ${ceros(ZEROS[m])}?`
+               : `Sacale a ${fmt(n * m)} ${ceros(ZEROS[m])}: ¿qué número queda?`,
+    why: `${fmt(n)} × ${fmt(m)} = ${fmt(n * m)}`,
+  };
+}
+
+function qPlata(i) {
+  if (i === 0) {
+    const g = [[1000, rnd(1, 3)], [100, rnd(1, 4)], [10, rnd(1, 4)], [1, rnd(1, 5)]];
+    const total = g.reduce((s, [v, n]) => s + v * n, 0);
+    return {
+      kind: 'num', answer: total, prompt: '¿Cuánta plata hay en total?', pic: () => moneyPic(g),
+      hint: 'Contá cada tipo por separado: ' + g.map(([v, n]) => `${n} × ${fmt(v)}`).join(', ') + '. Después sumá.',
+      why: g.map(([v, n]) => fmt(v * n)).join(' + ') + ` = ${fmt(total)}`,
+    };
+  }
+  if (i === 1) {
+    const k = rnd(3, 12);
+    return {
+      kind: 'fill', parts: [null, '×', '100', '=', fmt(k * 100)], solution: [k], validate: v => v[0] === k,
+      prompt: `¿Cuántos billetes de $100 necesitás para pagar justo $${fmt(k * 100)}?`,
+      pic: () => moneyPic([[100, 1]]),
+      hint: `Contá de 100 en 100 hasta ${fmt(k * 100)}, o sacale los dos ceros a ${fmt(k * 100)}.`,
+      why: `${k} × 100 = ${fmt(k * 100)}: son ${k} billetes.`,
+    };
+  }
+  if (i === 2) {
+    const [per, item] = pick([[6, 'alfajores'], [4, 'yogures'], [5, 'paquetes de figuritas'], [8, 'crayones']]);
+    const boxes = pick([10, 20, 30, 100, 200]);
+    return {
+      kind: 'fill', parts: [String(boxes), '×', String(per), '=', null], solution: [boxes * per], validate: v => v[0] === boxes * per,
+      prompt: `Cada caja trae ${per} ${item}. ¿Cuántos hay en ${boxes} cajas?`,
+      hint: `Hacé la cuenta sin ceros (${boxes / 10 ** (boxes >= 100 ? 2 : 1)} × ${per}) y después agregá los ceros.`,
+      why: `${boxes} × ${per} = ${fmt(boxes * per)}`,
+    };
+  }
+  if (i === 3) {
+    const g = [[1000, rnd(1, 4)], [100, rnd(1, 5)], [10, rnd(1, 4)], [1, rnd(1, 5)]];
+    const total = g.reduce((s, [v, n]) => s + v * n, 0);
+    const X = Math.random() < 0.5 ? total : total + pick([-100, 100, 10, -10, 1000]);
+    return {
+      kind: 'choice', prompt: `¿Hay justo $${fmt(X)} en total?`, pic: () => moneyPic(g),
+      options: [{ t: 'Sí', ok: X === total }, { t: 'No', ok: X !== total }],
+      hint: 'Contá los billetes de $1.000, después los de $100, las monedas de $10 y las de $1.',
+      why: `En total hay $${fmt(total)}. ${X === total ? '¡Es justo!' : `No es $${fmt(X)}.`}`,
+    };
+  }
+  const n = rnd(3, 6), c = rnd(2, 3);
+  return {
+    kind: 'multi', prompt: '¿Qué cálculos sirven para saber cuánta plata hay? <br><small>Puede haber más de uno.</small>',
+    pic: () => moneyPic([[1000, n], [1, c]]),
+    options: shuffle([
+      { t: `${n} × 1.000 + ${c}`, ok: true },
+      { t: Array(n).fill('1.000').join(' + ') + ` + ${c}`, ok: true },
+      { t: `${n} + 1.000 + ${c}`, ok: false },
+      { t: `${n} × 100 + ${c}`, ok: false },
+      { t: `${n} × 1.000 × ${c}`, ok: false },
+    ]),
+    hint: `Hay ${n} billetes de $1.000 (grupos iguales) y además ${c} monedas de $1.`,
+    why: `Sirven ${n} × 1.000 + ${c} y la suma larga. Las dos dan ${fmt(n * 1000 + c)}.`,
+  };
+}
+
+const MISSION_LEVELS = [
+  { name: 'Monedas y billetes', make: qMoney },
+  { name: 'Agregá ceros', make: qZeros },
+  { name: 'Números redondos', make: qRound },
+  { name: 'El número que falta', make: qMissing },
+  { name: 'Problemas con plata', make: qPlata },
+];
+startPractice({ key: 'mision2-practica', levels: MISSION_LEVELS });
+</script>
+</body>
+</html>
