@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Misiones de Matemática</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@600;800&display=swap">
+<style>
+/* Layout: chapter hub. Hero, then one card per mission (video + practice button); future missions dimmed. */
+:root {
+  --sky: #1b2547;
+  --sky-2: #26335f;
+  --star: #f2b33d;
+  --star-soft: #f7d58c;
+  --paper: #fbf8f1;
+  --ink: #23263a;
+  --ink-2: #555a75;
+  --muted: #aab4d8;
+  --good: #3f9c55;
+  --display: "Fredoka", "Arial Rounded MT Bold", "Trebuchet MS", sans-serif;
+  --body: "Nunito", "Avenir Next", "Segoe UI", sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background-color: var(--sky);
+  background-image:
+    radial-gradient(1.5px 1.5px at 12% 18%, #ffffffaa 50%, transparent 51%),
+    radial-gradient(1px 1px at 33% 72%, #ffffff88 50%, transparent 51%),
+    radial-gradient(2px 2px at 58% 12%, #ffffffaa 50%, transparent 51%),
+    radial-gradient(1px 1px at 81% 44%, #ffffff77 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 92% 86%, #ffffff99 50%, transparent 51%);
+  background-size: 420px 420px;
+  color: var(--paper);
+  font-family: var(--body);
+  font-size: 18px;
+}
+.wrap { max-width: 900px; margin: 0 auto; padding: 18px 16px 56px; display: grid; gap: 20px; }
+header { display: grid; gap: 8px; }
+h1 { font: 700 clamp(1.7rem, 5vw, 2.5rem)/1.1 var(--display); margin: 0; text-wrap: balance; }
+h1 mark { background: var(--star); color: var(--ink); padding: 0 .2em; border-radius: 6px; }
+.bubble { background: var(--paper); color: var(--ink); border-radius: 16px; padding: 10px 14px; font-weight: 800; margin: 0; max-width: 640px; }
+.mission { background: var(--paper); color: var(--ink); border-radius: 22px; padding: 18px clamp(14px, 3vw, 24px) 20px; display: grid; gap: 14px; }
+.mission h2 { font: 600 1.4rem/1.2 var(--display); margin: 0; }
+.mission h2 .tag { display: inline-block; background: var(--sky); color: var(--star); font-size: .75em; padding: 2px 12px; border-radius: 999px; margin-right: 6px; vertical-align: middle; }
+.video { width: 100%; aspect-ratio: 16 / 9; border-radius: 16px; background: #000; display: block; }
+.go { justify-self: start; font: 600 1.15rem var(--display); background: var(--good); color: #fff; text-decoration: none; border-radius: 999px; padding: 12px 22px; }
+.go:focus-visible { outline: 3px solid var(--star); outline-offset: 3px; }
+.soon { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 10px; }
+.soon div { background: var(--sky-2); color: var(--muted); border-radius: 16px; padding: 12px 14px; display: grid; gap: 2px; }
+.soon b { font: 600 1.05rem var(--display); color: var(--paper); }
+.soon small { font-weight: 800; }
+h3 { margin: 0; font: 600 1rem var(--display); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Misiones de <mark>multiplicar</mark> y <mark>dividir</mark></h1>
+    <p class="bubble">3.º grado · Capítulo 6. Cada misión tiene un video cortito y una práctica. Primero mirá el video, después practicá.</p>
+  </header>
+
+  <section class="mission">
+    <h2><span class="tag">Misión 1</span>Multiplicar es juntar grupos iguales</h2>
+    <video class="video" controls playsinline preload="metadata" poster="M1_poster.jpg">
+      <source src="M1_grupos_iguales.mp4" type="video/mp4">
+    </video>
+    <a class="go" href="M1_practica.html">Practicar la Misión 1 →</a>
+  </section>
+
+  <section style="display:grid;gap:10px">
+    <h3>Próximas misiones</h3>
+    <div class="soon">
+      <div><small>Misión 2</small><b>Multiplicar por 10, 100 y 1.000</b></div>
+      <div><small>Misión 3</small><b>Desarmar para multiplicar</b></div>
+      <div><small>Misión 4</small><b>¿Qué es dividir?</b></div>
+      <div><small>Misión 5</small><b>Dividir números redondos</b></div>
+    </div>
+  </section>
+</div>
+</body>
+</html>
