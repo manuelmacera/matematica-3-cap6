@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Práctica Misión 5</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@600;800&display=swap">
+<link rel="stylesheet" href="practica.css">
+
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <img class="mascot" id="mascot" src="mascot.png" alt="">
+  <div>
+    <h1>Práctica · <mark>Misión 5</mark></h1>
+    <p class="sub">Dividir números redondos</p>
+  </div>
+  <div class="head-btns">
+    <a class="back-btn" href="index.html">← Misiones</a>
+    <button class="table-btn" id="tableBtn">🔢 Tabla</button>
+    <button class="video-btn" id="videoBtn">▶ Video</button>
+  </div>
+</header>
+
+<div class="video-box" id="videoBox">
+  <video controls preload="none" src="M5_dividir_redondos.mp4"></video>
+</div>
+
+<section class="ptable-box" id="tableBox">
+  <p>Tabla pitagórica: tocá un número de la tabla y mirá su fila y su columna.</p>
+  <table class="ptable" id="ptable"></table>
+  <div class="readout" id="readout"></div>
+</section>
+
+<nav class="levels" id="levels"></nav>
+
+<main class="card" id="card"></main>
+
+</div>
+
+<script src="practica.js"></script>
+<script>
+// ---------- Misión 5: dividir números redondos ----------
+const one = (N, K, label) => ({
+  kind: 'fill', parts: [fmt(N), ':', fmt(K), '=', null], labels: [label || ''],
+  solution: [N / K], validate: v => v[0] === N / K,
+});
+
+function qRules(i) {
+  if (i === 3) {
+    return {
+      kind: 'multi', prompt: '¿Cuáles de estas divisiones dan cero?<br><small>Puede haber más de una.</small>',
+      options: shuffle([
+        { t: '3 : 3', ok: false }, { t: '0 : 1', ok: true }, { t: '10 : 10', ok: false },
+        { t: '0 : 5', ok: true }, { t: '0 : 10', ok: true }, { t: '1 : 1', ok: false },
+      ]),
+      hint: 'Da cero cuando no hay nada para repartir: cuando el primer número es 0.',
+      why: '0 : 1, 0 : 5 y 0 : 10 dan cero. 3 : 3, 10 : 10 y 1 : 1 dan uno.',
+    };
+  }
+  if (i === 4) {
+    return {
+      kind: 'fill', parts: [null, ':', null, '=', '1'], labels: ['', ''],
+      solution: [7, 7], validate: v => v[0] === v[1] && v[0] > 0,
+      prompt: 'Inventá una división que dé 1.',
+      hint: 'Pensá: ¿cuándo cada uno recibe uno solo? Cuando hay tantos caramelos como chicos.',
+      why: 'Cualquier número dividido por sí mismo da 1: 7 : 7 = 1, 25 : 25 = 1…',
+    };
+  }
+  const kind = i % 3;   // 0: n:1, 1: n:n, 2: 0:n
+  const n = i < 3 ? rnd(2, 9) : rnd(11, 50);
+  const [N, K, r, hint] = [
+    [n, 1, n, `Si repartís ${n} entre uno solo, se lleva todo.`],
+    [n, n, 1, `${n} caramelos para ${n} chicos: uno para cada uno.`],
+    [0, n, 0, 'Si no hay nada para repartir, nadie recibe nada.'],
+  ][kind];
+  const opts = [...new Set([0, 1, n])];
+  return {
+    kind: 'choice', prompt: `¿Cuánto es <span class="big">${N} : ${K}</span>?`,
+    options: shuffle(opts.map(v => ({ t: String(v), ok: v === r }))),
+    hint, why: `${N} : ${K} = ${r}. ${hint}`,
+  };
+}
+
+function qFamily(i) {
+  if (i === 4) {
+    const [s, K] = pick([[6, 3], [8, 4], [9, 3], [6, 2], [8, 2]]), z = pick([100, 1000]);
+    return {
+      kind: 'choice', prompt: `¿Qué división chiquita ayuda a resolver <span class="big">${fmt(s * z)} : ${K}</span>?`,
+      options: shuffle([{ t: `${s} : ${K}`, ok: true }, { t: `${s} : 1`, ok: false }, { t: `${K} : ${K}`, ok: false },
+                        { t: `${s * z} : 1`.replace(/\B(?=(\d{3})+(?!\d))/g, '.'), ok: false }]),
+      hint: 'Sacale los ceros al número grande.',
+      why: `${s} : ${K} = ${s / K}, y con los ceros: ${fmt(s * z)} : ${K} = ${fmt(s * z / K)}.`,
+    };
+  }
+  const [s, K] = pick([[8, 2], [6, 2], [4, 2], [6, 3], [9, 3], [8, 4], [10, 2], [10, 5]]);
+  const z = [1, 10, 100, 1000, pick([10, 100, 1000])][i];
+  const N = s * z;
+  return {
+    ...one(N, K), prompt: i === 0 ? 'Empezamos por la división chiquita.' : 'Usá la división chiquita y agregá los ceros.',
+    hint: z === 1 ? `¿${K} por cuánto da ${s}? Podés usar la 🔢 Tabla.`
+                  : `${s} : ${K} = ${s / K}. Ahora agregá los ceros que tiene ${fmt(N)} de más.`,
+    why: `${s} : ${K} = ${s / K}, entonces ${fmt(N)} : ${K} = ${fmt(N / K)}.`,
+  };
+}
+
+function qSplit(i) {
+  // N = K × q, split as K×10a + K×b (both easy)
+  const K = i < 2 ? pick([2, 5]) : pick([2, 3, 4, 5]);
+  const a = i === 4 ? 10 : i < 2 ? 1 : rnd(1, 2), b = rnd(1, 9);
+  const big = K * 10 * a, small = K * b, N = big + small;
+  return {
+    kind: 'fill', labels: ['', '', 'total'],
+    parts: [`${fmt(big)} : ${K} =`, null, `${small} : ${K} =`, null, 'Sumá:', null],
+    solution: [big / K, b, N / K], validate: v => v[0] === big / K && v[1] === b && v[2] === N / K,
+    prompt: `Desarmá para resolver <span class="big">${fmt(N)} : ${K}</span>. Lo partimos en ${fmt(big)} y ${small}.`,
+    hint: `${fmt(big)} : ${K} es fácil con ceros (${big / 10 ** (a === 10 ? 2 : 1)} : ${K}). Para ${small} : ${K} podés usar la 🔢 Tabla.`,
+    why: `${fmt(big)} : ${K} + ${small} : ${K} = ${fmt(big / K)} + ${b} = ${fmt(N / K)}`,
+  };
+}
+
+function qHalves(i) {
+  if (i === 2) {
+    return {
+      kind: 'fill', parts: ['1.000 : 2 =', null, '1.000 : 4 =', null, '1.000 : 8 =', null], labels: ['', '', ''],
+      solution: [500, 250, 125], validate: v => v[0] === 500 && v[1] === 250 && v[2] === 125,
+      prompt: 'La mitad, la mitad de la mitad, y otra vez la mitad.',
+      hint: 'La mitad de 1.000 es 500. La mitad de 500 es 250. La mitad de 250 es 125.',
+      why: '1.000 : 2 = 500, 1.000 : 4 = 250, 1.000 : 8 = 125.',
+    };
+  }
+  if (i === 3) {
+    return {
+      kind: 'choice', prompt: 'Para dividir por 4, ¿qué podés hacer?',
+      options: shuffle([{ t: 'La mitad de la mitad', ok: true }, { t: 'Sólo la mitad', ok: false },
+                        { t: 'Sacar un cero', ok: false }, { t: 'El doble del doble', ok: false }]),
+      hint: 'Dividir por 2 es la mitad. Y 4 es 2 por 2.',
+      why: 'Dividir por 4 es hacer la mitad, y después la mitad otra vez.',
+    };
+  }
+  if (i === 4) {
+    const N = pick([200, 400, 120, 800, 600]);
+    return {
+      kind: 'fill', parts: [`${N} : 2 =`, null, `${N} : 4 =`, null], labels: ['mitad', 'mitad de la mitad'],
+      solution: [N / 2, N / 4], validate: v => v[0] === N / 2 && v[1] === N / 4,
+      prompt: 'Usá la mitad de la mitad.',
+      hint: `La mitad de ${N} es ${N / 2}. Y la mitad de eso…`,
+      why: `${N} : 2 = ${N / 2}, y la mitad de ${N / 2} es ${N / 4}.`,
+    };
+  }
+  const N = i === 0 ? pick([10, 20, 40, 60, 80]) : pick([100, 300, 500, 700, 900, 1.4e3]);
+  return {
+    ...one(N, 2, 'la mitad'), prompt: 'Dividir por 2 es buscar la mitad.',
+    hint: `¿Qué número, sumado dos veces, da ${fmt(N)}?`,
+    why: `${fmt(N / 2)} + ${fmt(N / 2)} = ${fmt(N)}, entonces ${fmt(N)} : 2 = ${fmt(N / 2)}.`,
+  };
+}
+
+const PROBS = [
+  () => { const N = pick([400, 800, 1200, 1400, 1600]); return [N, 2, true, `Caro y Laura recibieron $${fmt(N)} para repartir en partes iguales. ¿Cuánto le toca a cada una?`]; },
+  () => { const N = pick([500, 1000, 1500]); return [N, 5, true, `Martina tiene ${fmt(N)} globos para ${5} salones, la misma cantidad en cada uno. ¿Cuántos van en cada salón?`]; },
+  () => { const N = pick([350, 500, 250, 120, 480]); return [N, 10, false, `¿Cuántas monedas de $10 se necesitan para pagar $${N}?`]; },
+  () => { const N = pick([3500, 5000, 1200, 2400]); return [N, 100, false, `¿Cuántos billetes de $100 se necesitan para pagar $${fmt(N)}?`]; },
+  () => { const N = pick([850, 600, 430, 1000]); return [N, 10, true, `Una fábrica preparó ${fmt(N)} empanadas para repartir en partes iguales entre sus 10 sucursales. ¿Cuántas recibe cada una?`]; },
+  () => { const N = pick([200, 400, 100]); return [N, 20, false, `Julio acomoda ${N} revistas, 20 en cada estante. ¿Cuántos estantes llena?`]; },
+  () => { const N = pick([600, 900, 300]); return [N, 3, false, `Cada triciclo lleva 3 ruedas. ¿Cuántos triciclos se arman con ${N} ruedas?`]; },
+];
+function qBookProblems(i) {
+  if (i === 4) {
+    const [q, anchor, more] = pick([['306 : 3', '300 : 3 = 100', true], ['495 : 5', '500 : 5 = 100', false],
+                                    ['412 : 4', '400 : 4 = 100', true], ['396 : 4', '400 : 4 = 100', false],
+                                    ['210 : 2', '200 : 2 = 100', true], ['190 : 2', '200 : 2 = 100', false]]);
+    return {
+      kind: 'choice', prompt: `Sin hacer la cuenta: ¿<span class="big">${q}</span> da más o menos que 100?`,
+      options: [{ t: 'Más que 100', ok: more }, { t: 'Menos que 100', ok: !more }],
+      hint: `Buscá una división parecida que dé 100. Pensá: ${anchor}.`,
+      why: `Pensá: ${anchor}. Entonces ${q} da ${more ? 'un poco más' : 'un poco menos'} que 100.`,
+    };
+  }
+  const [N, K, share, txt] = PROBS[[0, pick([2, 6]), pick([1, 4]), pick([3, 5])][i]]();
+  const r = N / K;
+  return {
+    kind: 'fill', parts: [null, ':', null, '=', null],
+    labels: share ? ['cantidad', 'partes', 'en cada una'] : ['cantidad', 'en cada uno', 'cuántos'],
+    solution: [N, K, r], validate: v => v[0] === N && v[1] === K && v[2] === r,
+    prompt: txt + '<br><small>Escribí la división.</small>',
+    hint: K === 10 ? 'Dividir por 10 es sacar un cero.' : K === 100 ? 'Dividir por 100 es sacar dos ceros.'
+         : `Usá una división chiquita: sacale los ceros a ${fmt(N)} y dividí por ${K}.`,
+    why: `${fmt(N)} : ${K} = ${fmt(r)}, porque ${K} × ${fmt(r)} = ${fmt(N)}.`,
+  };
+}
+
+const MISSION_LEVELS = [
+  { name: 'Tres reglas', make: qRules },
+  { name: 'De chico a grande', make: qFamily },
+  { name: 'Desarmar', make: qSplit },
+  { name: 'Mitades', make: qHalves },
+  { name: 'Problemas del libro', make: qBookProblems },
+];
+startPractice({ key: 'mision5-practica', levels: MISSION_LEVELS });
+</script>
+</body>
+</html>

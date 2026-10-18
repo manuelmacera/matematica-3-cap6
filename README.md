@@ -6,5 +6,6 @@ Videos cortos y prácticas interactivas para 3.º grado (capítulo 6: multiplica
 - **Misión 2:** Multiplicar por 10, 100 y 1.000 (video de 4 minutos + práctica en 5 niveles)
 - **Misión 3:** Desarmar para multiplicar (video de 4 minutos + práctica en 5 niveles)
 - **Misión 4:** ¿Qué es dividir? Repartir y armar paquetes (video de 4 minutos + práctica en 5 niveles, con tableros para repartir)
+- **Misión 5:** Dividir números redondos (video de 4 minutos + práctica en 5 niveles)
 
 Abrir: https://manuelmacera.github.io/matematica-3-cap6/
