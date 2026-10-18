@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Práctica Misión 3</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@600;800&display=swap">
+<link rel="stylesheet" href="practica.css">
+<style>
+/* Mission 3 only: dot grids split in two colours, and written (vertical) calculations */
+.split { display: inline-flex; gap: 14px; padding: 10px; background: #fff; border-radius: 12px; }
+.split .part { display: grid; gap: 4px; }
+.split i { width: 14px; height: 14px; border-radius: 50%; background: var(--a); display: block; }
+.split .part.b i { background: var(--b); }
+.split .lab { text-align: center; font: 600 1.1rem var(--display); color: var(--a); }
+.split .part.b .lab { color: var(--b); }
+.vcalc { font: 600 2.2rem/1.15 var(--display); text-align: right; display: inline-block; padding: 0 12px 6px; border-bottom: 4px solid var(--ink); }
+</style>
+
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <img class="mascot" id="mascot" src="mascot.png" alt="">
+  <div>
+    <h1>Práctica · <mark>Misión 3</mark></h1>
+    <p class="sub">Desarmar para multiplicar</p>
+  </div>
+  <div class="head-btns">
+    <a class="back-btn" href="index.html">← Misiones</a>
+    <button class="table-btn" id="tableBtn">🔢 Tabla</button>
+    <button class="video-btn" id="videoBtn">▶ Video</button>
+  </div>
+</header>
+
+<div class="video-box" id="videoBox">
+  <video controls preload="none" src="M3_desarmar.mp4"></video>
+</div>
+
+<section class="ptable-box" id="tableBox">
+  <p>Tabla pitagórica: tocá un número de la tabla y mirá su fila y su columna.</p>
+  <table class="ptable" id="ptable"></table>
+  <div class="readout" id="readout"></div>
+</section>
+
+<nav class="levels" id="levels"></nav>
+
+<main class="card" id="card"></main>
+
+</div>
+
+<script src="practica.js"></script>
+<script>
+// ---------- Misión 3: desarmar para multiplicar ----------
+function splitPic(r, c, cut) {
+  const w = h('div', 'pic'), box = h('div', 'split');
+  [[cut, ''], [c - cut, 'b']].forEach(([n, cls]) => {
+    const part = h('div', 'part ' + cls);
+    part.style.gridTemplateColumns = `repeat(${n}, 14px)`;
+    const lab = h('div', 'lab', String(n)); lab.style.gridColumn = `1 / -1`;
+    part.appendChild(lab);
+    for (let k = 0; k < r * n; k++) part.appendChild(h('i'));
+    box.appendChild(part);
+  });
+  w.appendChild(box); return w;
+}
+function vcalcPic(a, b) { const w = h('div', 'pic'); w.appendChild(h('div', 'vcalc', `${a}<br>× ${b}`)); return w; }
+
+function parts3(a, b) {          // a = two-digit number, b = one digit
+  const T = Math.floor(a / 10) * 10, u = a % 10;
+  return {
+    kind: 'fill', labels: ['', '', 'total'],
+    parts: [`${T} × ${b} =`, null, `${u} × ${b} =`, null, 'Sumá:', null],
+    solution: [T * b, u * b, a * b],
+    validate: v => v[0] === T * b && v[1] === u * b && v[2] === a * b,
+    hint: `${a} = ${T} + ${u}. Multiplicá ${T} × ${b} (cuenta chiquita y un cero) y ${u} × ${b} (con la 🔢 Tabla). Después sumá.`,
+    why: `${a} × ${b} = ${T} × ${b} + ${u} × ${b} = ${T * b} + ${u * b} = ${fmt(a * b)}`,
+  };
+}
+function qDots(i) {
+  const r = i < 2 ? rnd(2, 3) : rnd(3, 4), c = i < 2 ? rnd(11, 14) : rnd(15, 19);
+  return {
+    ...parts3(c, r),
+    parts: [`${r} × 10 =`, null, `${r} × ${c - 10} =`, null, 'Total:', null],
+    solution: [r * 10, r * (c - 10), r * c],
+    validate: v => v[0] === r * 10 && v[1] === r * (c - 10) && v[2] === r * c,
+    prompt: `Hay ${r} filas de ${c} puntos. Desarmamos el ${c} en 10 y ${c - 10}. ¿Cuántos puntos hay?`,
+    pic: () => splitPic(r, c, 10),
+    hint: `Contá las filas azules: ${r} filas de 10. Y las naranjas: ${r} filas de ${c - 10}. Después sumá.`,
+    why: `${r} × 10 + ${r} × ${c - 10} = ${r * 10} + ${r * (c - 10)} = ${r * c}`,
+  };
+}
+function qApart(i) {
+  const a = i < 2 ? rnd(11, 19) : rnd(21, 49), b = i < 2 ? rnd(2, 5) : rnd(3, 6);
+  return { ...parts3(a, b), prompt: `Desarmá para resolver <span class="big">${a} × ${b}</span>.` };
+}
+function qWhichHelp(i) {
+  if (i === 3) {
+    const same = Math.random() < 0.6, k = pick([4, 5, 6]), m = rnd(2, 5);
+    const other = same ? k : k - 1;
+    return {
+      kind: 'choice',
+      prompt: `¿Es lo mismo comprar <b>10 cajones de ${k} botellas y ${m} cajones de ${other} botellas</b> que comprar <b>${10 + m} cajones de ${k} botellas</b>?`,
+      options: [{ t: 'Sí', ok: same }, { t: 'No', ok: !same }],
+      hint: same ? 'Fijate si todos los cajones traen la misma cantidad de botellas.' : 'Mirá bien cuántas botellas trae cada cajón.',
+      why: same ? `Sí: 10 × ${k} + ${m} × ${k} = ${10 + m} × ${k} = ${(10 + m) * k}. Son ${10 + m} cajones iguales.`
+                : `No: los cajones no son todos iguales. 10 × ${k} + ${m} × ${other} = ${10 * k + m * other}, pero ${10 + m} × ${k} = ${(10 + m) * k}.`,
+    };
+  }
+  if (i === 4) {
+    const r = 4, c = 15;
+    return {
+      kind: 'multi', prompt: `¿Qué cálculos sirven para contar las baldosas de un patio de ${r} filas de ${c}? <br><small>Puede haber más de uno.</small>`,
+      pic: () => splitPic(r, c, 10),
+      options: shuffle([
+        { t: '4 × 10 + 4 × 5', ok: true }, { t: '4 × 15', ok: true }, { t: '10 + 10 + 10 + 10 + 5 + 5 + 5 + 5', ok: true },
+        { t: '4 + 15', ok: false }, { t: '4 + 10 × 4 + 5', ok: false },
+      ]),
+      hint: 'Contá las baldosas azules (4 filas de 10) y las naranjas (4 filas de 5).',
+      why: 'Sirven 4 × 15, 4 × 10 + 4 × 5 y la suma larga. Todos dan 60.',
+    };
+  }
+  const tens = rnd(2, 8), u = rnd(2, 9), b = rnd(3, 8), a = tens * 10 + u;
+  const cand = [
+    { t: `${b} × ${tens * 10}`, ok: true }, { t: `${b} × ${u}`, ok: true },
+    { t: `${b} × ${u * 10}`, ok: false }, { t: `${b} × ${tens}`, ok: false },
+    { t: `${b * 10} × ${tens * 10}`, ok: false }, { t: `${tens} × ${u}`, ok: false },
+  ];
+  const seen = new Set(), opts = cand.filter(o => !seen.has(o.t) && seen.add(o.t));
+  return {
+    kind: 'multi', prompt: `¿Qué cálculos ayudan a resolver <span class="big">${a} × ${b}</span>? <br><small>Elegí los dos que sirven.</small>`,
+    options: shuffle(opts),
+    hint: `${a} = ${tens * 10} + ${u}. Buscá ${b} por cada pedazo.`,
+    why: `${a} × ${b} = ${b} × ${tens * 10} + ${b} × ${u} = ${b * tens * 10} + ${b * u} = ${fmt(a * b)}`,
+  };
+}
+function qDouble(i) {
+  if (i === 2) {
+    return {
+      kind: 'fill', parts: ['25 × 2 =', null, '50 × 2 =', null, '25 × 4 =', null], labels: ['', '', ''],
+      solution: [50, 100, 100], validate: v => v[0] === 50 && v[1] === 100 && v[2] === 100,
+      prompt: 'Cuatro amigos pusieron $25 cada uno. Usá el doble del doble.',
+      hint: '25 + 25 = 50. Y el doble de 50 es 100.',
+      why: '25 × 2 = 50, 50 × 2 = 100. Entonces 25 × 4 = 100.',
+    };
+  }
+  if (i === 4) {
+    const a = rnd(6, 9), b = pick([3, 4]);
+    return {
+      kind: 'choice', prompt: `Para saber <span class="big">${a} × ${2 * b}</span>, ¿qué sirve?`,
+      options: shuffle([
+        { t: `El doble de ${a} × ${b}`, ok: true }, { t: `La mitad de ${a} × ${b}`, ok: false },
+        { t: `${a} × ${b} + 2`, ok: false }, { t: `${a} + ${b} + ${b}`, ok: false },
+      ]),
+      hint: `${2 * b} es el doble de ${b}.`,
+      why: `${a} × ${b} = ${a * b}, y el doble es ${a * 2 * b}: ${a} × ${2 * b} = ${a * 2 * b}.`,
+    };
+  }
+  if (i === 1) {
+    const a = rnd(6, 9), b = 3;
+    return {
+      kind: 'fill', parts: [`${a} × 6 =`, null, `${a} × 12 =`, null], labels: ['', ''],
+      solution: [a * 6, a * 12], validate: v => v[0] === a * 6 && v[1] === a * 12,
+      prompt: `Si ${a} × 3 = ${a * 3}, usá el doble para completar.`,
+      hint: `6 es el doble de 3, y 12 es el doble de 6. Hacé el doble de ${a * 3}, y después el doble otra vez.`,
+      why: `${a} × 6 = ${a * 6} (doble de ${a * 3}), ${a} × 12 = ${a * 12} (doble de ${a * 6}).`,
+    };
+  }
+  const a = rnd(3, 9), b = rnd(3, 5);
+  const twiceA = i === 3;
+  const [x, y] = twiceA ? [2 * a, b] : [a, 2 * b];
+  return {
+    kind: 'fill', parts: [`${x} × ${y} =`, null], solution: [x * y], validate: v => v[0] === x * y,
+    prompt: `Sabemos que ${a} × ${b} = ${a * b}. Usá el doble.`,
+    hint: `${twiceA ? `${x} es el doble de ${a}` : `${y} es el doble de ${b}`}: el resultado es el doble de ${a * b}.`,
+    why: `${x} × ${y} = ${a * b} + ${a * b} = ${x * y}`,
+  };
+}
+function qEstimate(i) {
+  if (i < 2) {
+    const [q, anchor, more] = pick(
+      i === 0 ? [['52 × 2', '50 × 2 = 100', true], ['19 × 5', '20 × 5 = 100', false], ['51 × 2', '50 × 2 = 100', true],
+                 ['21 × 5', '20 × 5 = 100', true]]
+              : [['24 × 4', '25 × 4 = 100', false], ['26 × 4', '25 × 4 = 100', true], ['33 × 3', '33 + 33 + 33 = 99', false],
+                 ['11 × 9', '11 × 10 = 110, y 11 menos', false]]);
+    return {
+      kind: 'choice', prompt: `Sin hacer la cuenta: ¿<span class="big">${q}</span> da más o menos que 100?`,
+      options: [{ t: 'Más que 100', ok: more }, { t: 'Menos que 100', ok: !more }],
+      hint: `Buscá una cuenta parecida que dé 100. Pensá: ${anchor}.`,
+      why: `Pensá: ${anchor}. Entonces ${q} da ${more ? 'más' : 'menos'} que 100.`,
+    };
+  }
+  let [a, b] = i === 4 ? [pick([106, 104, 108, 103]), pick([3, 4, 5])] : [rnd(23, 79), rnd(3, 6)];
+  if (a % 10 === 0) a += 3;   // round numbers would make breaking apart pointless
+  const big = a >= 100;
+  const T = big ? 100 : Math.floor(a / 10) * 10, u = a - T;
+  return {
+    kind: 'fill', parts: [`${a} × ${b} =`, null], solution: [a * b], validate: v => v[0] === a * b,
+    prompt: 'Resolvé como quieras: con la cuenta parada o desarmando.', pic: () => vcalcPic(a, b),
+    hint: `Desarmá: ${a} = ${T} + ${u}. ${T} × ${b} = ${T * b} y ${u} × ${b} = ${u * b}.`,
+    why: `${T} × ${b} + ${u} × ${b} = ${T * b} + ${u * b} = ${fmt(a * b)}`,
+  };
+}
+
+const MISSION_LEVELS = [
+  { name: 'Desarmar con puntos', make: qDots },
+  { name: 'Desarmar sin dibujo', make: qApart },
+  { name: '¿Qué cálculos ayudan?', make: qWhichHelp },
+  { name: 'El doble', make: qDouble },
+  { name: 'Estimar y calcular', make: qEstimate },
+];
+startPractice({ key: 'mision3-practica', levels: MISSION_LEVELS });
+</script>
+</body>
+</html>
