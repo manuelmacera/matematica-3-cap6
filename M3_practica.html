@@ -83,7 +83,7 @@ function qDots(i) {
   const r = i < 2 ? rnd(2, 3) : rnd(3, 4), c = i < 2 ? rnd(11, 14) : rnd(15, 19);
   return {
     ...parts3(c, r),
-    parts: [`${r} × 10 =`, null, `${r} × ${c - 10} =`, null, 'Total:', null],
+    parts: [`${r} × 10 =`, null, `${r} × ${c - 10} =`, null, `Entonces ${r} × ${c} =`, null],
     solution: [r * 10, r * (c - 10), r * c],
     validate: v => v[0] === r * 10 && v[1] === r * (c - 10) && v[2] === r * c,
     prompt: `Hay ${r} filas de ${c} puntos. Desarmamos el ${c} en 10 y ${c - 10}. ¿Cuántos puntos hay?`,
@@ -92,9 +92,20 @@ function qDots(i) {
     why: `${r} × 10 + ${r} × ${c - 10} = ${r * 10} + ${r * (c - 10)} = ${r * c}`,
   };
 }
+// No pre-split blanks here: she chooses how to split the number, does the parts in her notebook,
+// and answers the whole multiplication.
 function qApart(i) {
-  const a = i < 2 ? rnd(11, 19) : rnd(21, 49), b = i < 2 ? rnd(2, 5) : rnd(3, 6);
-  return { ...parts3(a, b), prompt: `Desarmá para resolver <span class="big">${a} × ${b}</span>.` };
+  let a; do { a = i < 2 ? rnd(11, 19) : rnd(21, 49); } while (a % 10 === 0);
+  const b = i < 2 ? rnd(2, 5) : rnd(3, 6), T = a - a % 10, u = a % 10;
+  return {
+    kind: 'fill', labels: ['', '', `${a} × ${b}`],
+    parts: [`${a} =`, null, '+', null, `   ${a} × ${b} =`, null],
+    solution: [T, u, a * b],
+    validate: v => v[0] > 0 && v[1] > 0 && v[0] + v[1] === a && v[2] === a * b,
+    prompt: `¿Cuánto es <span class="big">${a} × ${b}</span>? Primero elegí cómo desarmar el ${a}. Hacé las cuentas en tu cuaderno y escribí el resultado.`,
+    hint: `Una forma fácil: ${a} = ${T} + ${u}. Multiplicá cada parte por ${b} y sumá.`,
+    why: `${a} × ${b} = ${T} × ${b} + ${u} × ${b} = ${T * b} + ${u * b} = ${a * b}`,
+  };
 }
 function qWhichHelp(i) {
   if (i === 3) {

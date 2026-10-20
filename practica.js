@@ -350,7 +350,7 @@ function levelDone() {
 })();
 
 // ---------- video ----------
-$('#videoBtn').onclick = () => {
+if ($('#videoBtn')) $('#videoBtn').onclick = () => {   // the test page has no video
   const box = $('#videoBox'), open = box.classList.toggle('open');
   $('#videoBtn').textContent = open ? '✕ Cerrar video' : '▶ Video';
   if (!open) $('video', box).pause();

@@ -1,0 +1,425 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Prueba de práctica</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@600;800&display=swap">
+<link rel="stylesheet" href="practica.css">
+<style>
+/* Test page: start screen (two modes), one question per card with a blank "Tus cuentas" sheet where the
+   child writes her own working, then a results screen that shows each answer next to a worked solution. */
+.group-title { font: 600 1.05rem var(--display); color: var(--ink-2); margin: 0; }
+.qtext { font-size: 1.2rem; font-weight: 800; margin: 0; }
+.qtext.calc { font: 600 2rem var(--display); }
+.context { background: var(--paper-2); border-radius: 12px; padding: 10px 14px; font-weight: 800; }
+.sheet { display: grid; gap: 8px; background: #fff; border: 2px dashed #cfc7b6; border-radius: 14px; padding: 12px; }
+.sheet h3 { margin: 0; font: 600 1rem var(--display); color: var(--ink-2); }
+.sheet ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.sheet li { font: 600 1.35rem var(--display); display: flex; align-items: center; gap: 10px; }
+.sheet li .mark { font-size: 1.1rem; }
+.sheet li .mark.ok { color: var(--good); }
+.sheet li .mark.no { color: var(--bad); }
+.sheet li button { min-height: 0; padding: 2px 10px; font-size: .85rem; }
+.sheet .entry { display: flex; gap: 8px; flex-wrap: wrap; }
+.sheet .entry input { flex: 1; min-width: 180px; font: 600 1.35rem var(--display); border: 3px solid var(--paper-2); border-radius: 12px; padding: 6px 10px; }
+.sheet .keys { display: flex; gap: 6px; flex-wrap: wrap; }
+.sheet .keys button { min-height: 40px; min-width: 46px; padding: 4px 10px; background: var(--paper-2); color: var(--ink); font-size: 1.2rem; }
+.answer-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font: 600 1.6rem var(--display); }
+.answer-row input.num { width: 6ch; font: 600 1.6rem var(--display); text-align: center; border: 3px solid var(--paper-2); border-radius: 12px; padding: 6px; }
+.answer-row input.sentence { flex: 1; min-width: 220px; font: 600 1.15rem var(--body); border: 3px solid var(--paper-2); border-radius: 12px; padding: 10px; }
+.answer-row label { font: 600 1.1rem var(--display); color: var(--ink-2); }
+textarea.expl { width: 100%; min-height: 70px; font: 600 1.05rem var(--body); border: 3px solid var(--paper-2); border-radius: 12px; padding: 10px; }
+.sheet .entry input, .answer-row input, textarea.expl { background: #fff; color: var(--ink); }
+input:focus, textarea:focus { outline: none; border-color: var(--a) !important; }
+.solution { background: var(--good-soft); border-radius: 14px; padding: 12px 16px; display: grid; gap: 4px; }
+.solution b { color: var(--good); font-family: var(--display); }
+.solution p { margin: 0; font-weight: 800; }
+.verdict { font: 600 1.2rem var(--display); }
+.verdict.ok { color: var(--good); }
+.verdict.no { color: var(--bad); }
+.start { display: grid; gap: 14px; justify-items: center; text-align: center; padding: 6px 0; }
+.start h2 { font: 700 1.7rem var(--display); margin: 0; }
+.start p { margin: 0; max-width: 560px; }
+.modes { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; width: 100%; }
+.mode { background: var(--paper-2); color: var(--ink); border-radius: 18px; padding: 16px; text-align: left; display: grid; gap: 6px; min-height: 0; }
+.mode b { font: 600 1.25rem var(--display); }
+.mode span { font: 600 .95rem var(--body); color: var(--ink-2); }
+.mode.main { background: var(--a-soft); }
+.review { display: grid; gap: 12px; }
+.review .item { border: 2px solid var(--paper-2); border-radius: 16px; padding: 12px 14px; display: grid; gap: 8px; }
+.review .item.ok { border-color: var(--good); }
+.review .item.no { border-color: var(--bad); }
+.review .mine { font-weight: 800; color: var(--ink-2); }
+.score { font: 700 2.4rem var(--display); color: var(--star); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <img class="mascot" id="mascot" src="mascot.png" alt="">
+  <div>
+    <h1>Prueba de <mark>práctica</mark></h1>
+    <p class="sub">Multiplicar, dividir, sumar y restar</p>
+  </div>
+  <div class="head-btns">
+    <a class="back-btn" href="index.html">← Misiones</a>
+    <button class="table-btn" id="tableBtn">🔢 Tabla</button>
+  </div>
+</header>
+
+<section class="ptable-box" id="tableBox">
+  <p>Tabla pitagórica: tocá un número de la tabla y mirá su fila y su columna.</p>
+  <table class="ptable" id="ptable"></table>
+  <div class="readout" id="readout"></div>
+</section>
+
+<main class="card" id="card"></main>
+
+</div>
+
+<script src="practica.js"></script>
+<script>
+(() => {
+// ---------- helpers ----------
+const card = $('#card');
+const F = n => fmt(n);
+
+// Evaluate a line the child wrote, like "6 x 8 = 48" or "2.865 + 3.478 = 6.343".
+// Returns true / false when it is a calculation, null when it is not.
+function checkLine(s) {
+  let t = s.replace(/[×xX*]/g, '*').replace(/[:÷\/]/g, '/').replace(/[−–—]/g, '-')
+           .replace(/(\d)\.(?=\d{3}(?!\d))/g, '$1');
+  const sides = t.split('=');
+  if (sides.length < 2 || sides.some(p => !/^[\d\s+\-*/()]+$/.test(p) || !/\d/.test(p))) return null;
+  try {
+    const vals = sides.map(p => Function('"use strict"; return (' + p + ')')());
+    return vals.every(v => Number.isFinite(v) && Math.abs(v - vals[0]) < 1e-9);
+  } catch (e) { return null; }
+}
+// Numbers that appear in a sentence ("Hay 2.407 cuadernos" -> [2407]).
+const numbersIn = s => (s.match(/\d{1,3}(?:\.\d{3})+|\d+/g) || []).map(x => +x.replace(/\./g, ''));
+
+// ---------- the exact questions of the school's practice sheet ----------
+const G = {
+  1: '1. Leé y resolvé las siguientes situaciones problemáticas.',
+  2: '2. Resolvé la siguiente situación problemática.',
+  3: '3. Descubrí qué número se escribió en la calculadora.',
+  4: '4. Leé y resolvé.',
+  5: '5. Resolvé los siguientes cálculos.',
+  6: '6. Resolvé las siguientes multiplicaciones.',
+};
+const two = (g, letter, text, a, b, c, d, unit, answer) => ({
+  g, letter, type: 'problem', text, expected: a * b + c * d,
+  solution: [`${a} × ${b} = ${a * b}`, `${c} × ${d} = ${c * d}`, `${a * b} + ${c * d} = ${a * b + c * d}`],
+  model: answer(a * b + c * d),
+});
+const blank = (letter, text, before, after, expected, solution, model) =>
+  ({ g: 3, letter, type: 'blank', text, before, after, expected, solution, model });
+const calc = (g, letter, expr, expected, solution) => ({ g, letter, type: 'calc', text: expr, expected, solution });
+
+function examQuestions() {
+  return [
+    two(1, 'a', 'En un teatro hay dos sectores de butacas. En el primero hay 6 filas de 8 butacas cada una y en el segundo hay 4 filas de 5 butacas cada una. ¿Cuántas butacas hay en total?',
+        6, 8, 4, 5, 'butacas', n => `Hay ${n} butacas en total.`),
+    two(1, 'b', 'En una biblioteca organizaron los libros en dos estanterías. En una colocaron 7 estantes con 9 libros cada uno y en la otra, 5 estantes con 6 libros cada uno. ¿Cuántos libros acomodaron en total?',
+        7, 9, 5, 6, 'libros', n => `Acomodaron ${n} libros en total.`),
+    two(1, 'c', 'Para una fiesta prepararon 8 bandejas con 10 sándwiches cada una y 6 bandejas con 4 sándwiches cada una. ¿Cuántos sándwiches prepararon en total?',
+        8, 10, 6, 4, 'sándwiches', n => `Prepararon ${n} sándwiches en total.`),
+    { g: 2, letter: '', type: 'problem', expected: 900,
+      text: 'Tres hermanos recibieron $2.700 de regalo. ¿Cuánto dinero le corresponde a cada uno si lo reparten en partes iguales?',
+      solution: ['2.700 : 3 = 900', 'Pensalo con billetes: $2.700 son 27 billetes de $100. 27 : 3 = 9 billetes para cada uno: $900.', 'Comprobamos: 3 × 900 = 2.700'],
+      model: 'A cada uno le corresponden $900.' },
+    blank('a', 'Se escribió un número, se lo dividió por 6 y el visor mostró 200. ¿Qué número se escribió?', '', ': 6 = 200', 1200,
+          ['6 × 200 = 1.200', 'Comprobamos: 1.200 : 6 = 200'], 'Multipliqué 6 × 200, porque la multiplicación es lo contrario de la división.'),
+    blank('b', 'Se escribió un número, se lo multiplicó por 4 y el visor mostró 800. ¿Qué número se escribió?', '', '× 4 = 800', 200,
+          ['800 : 4 = 200', 'Comprobamos: 200 × 4 = 800'], 'Dividí 800 : 4, porque la división es lo contrario de la multiplicación.'),
+    blank('c', 'Se escribió un número, se le sumaron 350 y el visor mostró 1.000. ¿Qué número se escribió?', '', '+ 350 = 1.000', 650,
+          ['1.000 − 350 = 650', 'Comprobamos: 650 + 350 = 1.000'], 'Resté 1.000 − 350, porque la resta es lo contrario de la suma.'),
+    { g: 4, letter: 'a', type: 'problem', expected: 6343, keep: true,
+      context: 'En una librería tenían 8.750 cuadernos. Durante la primera semana vendieron 2.865 y durante la segunda, 3.478.',
+      text: '¿Cuántos cuadernos vendieron entre las dos semanas?',
+      solution: ['2.865 + 3.478 = 6.343'], model: 'Vendieron 6.343 cuadernos entre las dos semanas.' },
+    { g: 4, letter: 'b', type: 'problem', expected: 2407, keep: true,
+      context: 'En una librería tenían 8.750 cuadernos. Durante la primera semana vendieron 2.865 y durante la segunda, 3.478.',
+      text: '¿Cuántos cuadernos quedaron sin vender?',
+      solution: ['Vendieron 6.343 (la respuesta de a).', '8.750 − 6.343 = 2.407'], model: 'Quedaron 2.407 cuadernos sin vender.' },
+    calc(5, 'a', '6 × 200', 1200, ['6 × 2 = 12, y los dos ceros del 200: 1.200']),
+    calc(5, 'b', '4 × 300', 1200, ['4 × 3 = 12, y los dos ceros del 300: 1.200']),
+    calc(5, 'c', '800 : 4', 200, ['8 : 4 = 2, y los dos ceros: 200', 'Con billetes: 8 billetes de $100 entre 4 → 2 billetes cada uno.']),
+    calc(5, 'd', '350 : 5', 70, ['350 son 35 monedas de $10. 35 : 5 = 7 monedas → 70.', 'Comprobamos: 5 × 70 = 350']),
+    calc(5, 'e', '7 × 100', 700, ['7 con los dos ceros del 100: 700']),
+    calc(5, 'f', '900 : 3', 300, ['9 : 3 = 3, y los dos ceros: 300']),
+    calc(6, 'a', '68 × 4', 272, ['68 = 60 + 8', '60 × 4 = 240', '8 × 4 = 32', '240 + 32 = 272']),
+    calc(6, 'b', '47 × 6', 282, ['47 = 40 + 7', '40 × 6 = 240', '7 × 6 = 42', '240 + 42 = 282']),
+    calc(6, 'c', '85 × 3', 255, ['85 = 80 + 5', '80 × 3 = 240', '5 × 3 = 15', '240 + 15 = 255']),
+  ];
+}
+
+// ---------- the same kinds of questions, with new numbers ----------
+const PLACES = [
+  ['En un teatro hay dos sectores de butacas. En el primero hay {a} filas de {b} butacas cada una y en el segundo hay {c} filas de {d} butacas cada una. ¿Cuántas butacas hay en total?', n => `Hay ${n} butacas en total.`],
+  ['En una biblioteca hay dos estanterías. En una hay {a} estantes con {b} libros cada uno y en la otra, {c} estantes con {d} libros cada uno. ¿Cuántos libros hay en total?', n => `Hay ${n} libros en total.`],
+  ['Para un cumpleaños prepararon {a} bandejas con {b} empanadas cada una y {c} bandejas con {d} empanadas cada una. ¿Cuántas empanadas prepararon en total?', n => `Prepararon ${n} empanadas en total.`],
+  ['En un estacionamiento hay dos sectores. En uno entran {a} filas de {b} autos y en el otro, {c} filas de {d} autos. ¿Cuántos autos entran en total?', n => `Entran ${n} autos en total.`],
+  ['En una huerta armaron {a} surcos con {b} plantines cada uno y {c} surcos con {d} plantines cada uno. ¿Cuántos plantines pusieron en total?', n => `Pusieron ${n} plantines en total.`],
+];
+const KIDS = { 2: 'Dos', 3: 'Tres', 4: 'Cuatro', 5: 'Cinco', 6: 'Seis' };
+
+function practiceQuestions() {
+  const qs = [];
+  shuffle(PLACES).slice(0, 3).forEach(([tpl, model], k) => {
+    const a = rnd(3, 9), b = pick([rnd(3, 9), 10]), c = rnd(3, 9), d = rnd(3, 9);
+    const text = tpl.replace('{a}', a).replace('{b}', b).replace('{c}', c).replace('{d}', d);
+    qs.push(two(1, 'abc'[k], text, a, b, c, d, '', model));
+  });
+  const [s, K] = pick([[27, 3], [24, 4], [18, 3], [16, 2], [35, 5], [12, 4], [36, 6], [24, 3], [28, 4]]);
+  const N = s * 100, r = N / K;
+  qs.push({ g: 2, letter: '', type: 'problem', expected: r,
+    text: `${KIDS[K]} hermanos recibieron $${F(N)} de regalo. ¿Cuánto dinero le corresponde a cada uno si lo reparten en partes iguales?`,
+    solution: [`${F(N)} : ${K} = ${F(r)}`, `Pensalo con billetes: $${F(N)} son ${s} billetes de $100. ${s} : ${K} = ${s / K} billetes para cada uno.`, `Comprobamos: ${K} × ${F(r)} = ${F(N)}`],
+    model: `A cada uno le corresponden $${F(r)}.` });
+  const K1 = rnd(2, 6), r1 = pick([100, 200, 300]);
+  qs.push(blank('a', `Se escribió un número, se lo dividió por ${K1} y el visor mostró ${r1}. ¿Qué número se escribió?`, '', `: ${K1} = ${r1}`, K1 * r1,
+    [`${K1} × ${r1} = ${F(K1 * r1)}`, `Comprobamos: ${F(K1 * r1)} : ${K1} = ${r1}`], `Multipliqué ${K1} × ${r1}, porque la multiplicación es lo contrario de la división.`));
+  const K2 = rnd(2, 4), r2 = pick([100, 200, 300]), P2 = K2 * r2;
+  qs.push(blank('b', `Se escribió un número, se lo multiplicó por ${K2} y el visor mostró ${P2}. ¿Qué número se escribió?`, '', `× ${K2} = ${P2}`, r2,
+    [`${P2} : ${K2} = ${r2}`, `Comprobamos: ${r2} × ${K2} = ${P2}`], `Dividí ${P2} : ${K2}, porque la división es lo contrario de la multiplicación.`));
+  const T3 = pick([1000, 500, 800]), a3 = pick([150, 250, 350, 450, 120, 280].filter(x => x < T3));
+  qs.push(blank('c', `Se escribió un número, se le sumaron ${a3} y el visor mostró ${F(T3)}. ¿Qué número se escribió?`, '', `+ ${a3} = ${F(T3)}`, T3 - a3,
+    [`${F(T3)} − ${a3} = ${T3 - a3}`, `Comprobamos: ${T3 - a3} + ${a3} = ${F(T3)}`], `Resté ${F(T3)} − ${a3}, porque la resta es lo contrario de la suma.`));
+  const w1 = rnd(1500, 3600), w2 = rnd(1500, 3600), T = rnd(w1 + w2 + 400, 9800), sold = w1 + w2;
+  const ctx = `En una librería tenían ${F(T)} cuadernos. Durante la primera semana vendieron ${F(w1)} y durante la segunda, ${F(w2)}.`;
+  qs.push({ g: 4, letter: 'a', type: 'problem', expected: sold, keep: true, context: ctx,
+    text: '¿Cuántos cuadernos vendieron entre las dos semanas?', solution: [`${F(w1)} + ${F(w2)} = ${F(sold)}`],
+    model: `Vendieron ${F(sold)} cuadernos entre las dos semanas.` });
+  qs.push({ g: 4, letter: 'b', type: 'problem', expected: T - sold, keep: true, context: ctx,
+    text: '¿Cuántos cuadernos quedaron sin vender?', solution: [`Vendieron ${F(sold)} (la respuesta de a).`, `${F(T)} − ${F(sold)} = ${F(T - sold)}`],
+    model: `Quedaron ${F(T - sold)} cuadernos sin vender.` });
+  const m1 = rnd(2, 9), h1 = pick([200, 300, 400]), m2 = rnd(2, 5), h2 = pick([200, 300]);
+  const [d1, k1] = pick([[8, 4], [6, 3], [9, 3], [6, 2], [8, 2]]), [d2, k2] = pick([[35, 5], [24, 4], [42, 6], [28, 7], [45, 5], [32, 4]]);
+  const m3 = rnd(2, 9), [d3, k3] = pick([[9, 3], [8, 4], [6, 2], [4, 2]]);
+  qs.push(calc(5, 'a', `${m1} × ${h1}`, m1 * h1, [`${m1} × ${h1 / 100} = ${m1 * h1 / 100}, y los dos ceros: ${F(m1 * h1)}`]));
+  qs.push(calc(5, 'b', `${m2} × ${h2}`, m2 * h2, [`${m2} × ${h2 / 100} = ${m2 * h2 / 100}, y los dos ceros: ${F(m2 * h2)}`]));
+  qs.push(calc(5, 'c', `${d1 * 100} : ${k1}`, d1 * 100 / k1, [`${d1} : ${k1} = ${d1 / k1}, y los dos ceros: ${d1 * 100 / k1}`, `Con billetes: ${d1} billetes de $100 entre ${k1} → ${d1 / k1} billetes cada uno.`]));
+  qs.push(calc(5, 'd', `${d2 * 10} : ${k2}`, d2 * 10 / k2, [`${d2 * 10} son ${d2} monedas de $10. ${d2} : ${k2} = ${d2 / k2} monedas → ${d2 * 10 / k2}.`, `Comprobamos: ${k2} × ${d2 * 10 / k2} = ${d2 * 10}`]));
+  qs.push(calc(5, 'e', `${m3} × 100`, m3 * 100, [`${m3} con los dos ceros del 100: ${m3 * 100}`]));
+  qs.push(calc(5, 'f', `${d3 * 100} : ${k3}`, d3 * 100 / k3, [`${d3} : ${k3} = ${d3 / k3}, y los dos ceros: ${d3 * 100 / k3}`]));
+  ['a', 'b', 'c'].forEach(letter => {
+    let a; do { a = rnd(41, 98); } while (a % 10 === 0);
+    const b = rnd(3, 7), T = a - a % 10, u = a % 10;
+    qs.push(calc(6, letter, `${a} × ${b}`, a * b, [`${a} = ${T} + ${u}`, `${T} × ${b} = ${T * b}`, `${u} × ${b} = ${u * b}`, `${T * b} + ${u * b} = ${a * b}`]));
+  });
+  return qs;
+}
+
+// Groups stay in order 1 → 6; inside a group the questions are shuffled (except 4a / 4b, which go together).
+function arrange(qs) {
+  const out = [];
+  for (let g = 1; g <= 6; g++) {
+    const grp = qs.filter(q => q.g === g);
+    out.push(...(grp.some(q => q.keep) ? grp : shuffle(grp)));
+  }
+  return out;
+}
+
+// ---------- state ----------
+let mode = null, qs = [], at = 0, ans = [];
+
+function startScreen() {
+  card.innerHTML = '';
+  const s = h('div', 'start');
+  s.appendChild(h('h2', '', 'Prueba de práctica'));
+  s.appendChild(h('p', '', 'Son 18 preguntas, una por una, como en la hoja de práctica. Escribí tus cuentas en la hoja de cada pregunta y después la respuesta. Podés usar la 🔢 Tabla.'));
+  const modes = h('div', 'modes');
+  const m1 = h('button', 'mode main', '<b>📝 La prueba</b><span>Las mismas preguntas de la hoja. Las respuestas aparecen al final, como en una prueba de verdad.</span>');
+  const m2 = h('button', 'mode', '<b>🔁 Más práctica</b><span>Las mismas clases de preguntas con otros números. Después de cada una ves si está bien y cómo se resuelve.</span>');
+  m1.onclick = () => begin('exam'); m2.onclick = () => begin('practice');
+  modes.append(m1, m2); s.appendChild(modes);
+  card.appendChild(s);
+}
+
+function begin(m) {
+  mode = m;
+  qs = arrange(m === 'exam' ? examQuestions() : practiceQuestions());
+  ans = qs.map(() => ({ work: [], answer: '', expl: '', checked: false }));
+  at = 0; show();
+}
+
+// ---------- one question ----------
+function show() {
+  const q = qs[at], a = ans[at];
+  card.innerHTML = '';
+  const top = h('div', 'card-top');
+  top.appendChild(h('h2', '', `Pregunta ${at + 1} de ${qs.length}`));
+  const dots = h('div', 'dots');
+  qs.forEach((_, k) => dots.appendChild(h('span', k === at ? 'now' : (ans[k].answer !== '' ? 'ok' : ''))));
+  top.appendChild(dots);
+  card.appendChild(top);
+  card.appendChild(h('p', 'group-title', G[q.g]));
+  if (q.context) card.appendChild(h('div', 'context', q.context));
+  if (q.type !== 'calc') card.appendChild(h('p', 'qtext', (q.letter ? q.letter + '. ' : '') + q.text));
+
+  // the answer first for calculations, the working sheet first for problems
+  const ansBox = h('div');
+  if (q.type === 'calc') {
+    const row = h('div', 'answer-row');
+    row.appendChild(h('span', '', `${q.letter}. ${q.text} =`));
+    row.appendChild(numBox(a));
+    ansBox.appendChild(row);
+  } else if (q.type === 'blank') {
+    ansBox.appendChild(h('label', '', 'Podés ayudarte con el cálculo:'));
+    const row = h('div', 'answer-row');
+    row.appendChild(numBox(a));
+    row.appendChild(h('span', '', q.after));
+    ansBox.appendChild(row);
+    ansBox.appendChild(h('label', '', 'Explicación:'));
+    const ta = h('textarea', 'expl'); ta.value = a.expl; ta.placeholder = '¿Qué cuenta hiciste y por qué?';
+    ta.oninput = () => { a.expl = ta.value; };
+    ansBox.appendChild(ta);
+  } else {
+    const row = h('div', 'answer-row');
+    row.appendChild(h('label', '', 'Respuesta:'));
+    const inp = h('input', 'sentence'); inp.value = a.answer; inp.placeholder = 'Escribí la respuesta con palabras';
+    inp.oninput = () => { a.answer = inp.value; };
+    row.appendChild(inp);
+    ansBox.appendChild(row);
+  }
+  const sheet = workSheet(a);
+  if (q.type === 'calc') card.append(ansBox, sheet); else card.append(sheet, ansBox);
+
+  const fb = h('div'); fb.id = 'fb'; card.appendChild(fb);
+  if (mode === 'practice' && a.checked) showVerdict(fb, q, a);
+
+  const act = h('div', 'actions');
+  const back = h('button', 'alt', '← Anterior'); back.disabled = at === 0;
+  back.onclick = () => { at--; show(); };
+  act.appendChild(back);
+  const right = h('div', 'right-side');
+  if (mode === 'practice' && !a.checked) {
+    const chk = h('button', 'go', 'Comprobar');
+    chk.onclick = () => {
+      if (a.answer === '') { fb.className = 'feedback show info'; fb.textContent = 'Primero escribí tu respuesta.'; return; }
+      a.checked = true; show();
+    };
+    right.appendChild(chk);
+  } else {
+    const next = h('button', at === qs.length - 1 ? 'go' : '', at === qs.length - 1 ? 'Terminar ✓' : 'Siguiente →');
+    next.onclick = () => {
+      const needsWork = q.type === 'problem' && a.work.length === 0;
+      if ((a.answer === '' || needsWork) && !next.dataset.warned) {
+        fb.className = 'feedback show info';
+        fb.textContent = a.answer === '' ? 'Todavía no escribiste la respuesta. Tocá otra vez para seguir igual.'
+                                         : 'Recordá anotar tus cuentas en la hoja. Tocá otra vez para seguir igual.';
+        next.dataset.warned = '1'; return;
+      }
+      if (at === qs.length - 1) results(); else { at++; show(); }
+    };
+    right.appendChild(next);
+  }
+  act.appendChild(right);
+  card.appendChild(act);
+}
+
+function numBox(a) {
+  const inp = h('input', 'num'); inp.inputMode = 'numeric'; inp.value = a.answer;
+  inp.oninput = () => { inp.value = inp.value.replace(/[^\d.]/g, ''); a.answer = inp.value; };
+  return inp;
+}
+
+// The child's own working: she writes each calculation; in practice mode each line is checked.
+function workSheet(a) {
+  const s = h('div', 'sheet');
+  s.appendChild(h('h3', '', '✏️ Tus cuentas'));
+  const list = h('ul');
+  const draw = () => {
+    list.innerHTML = '';
+    a.work.forEach((line, k) => {
+      const li = h('li');
+      if (mode === 'practice') {
+        const ok = checkLine(line);
+        li.appendChild(h('span', 'mark ' + (ok === true ? 'ok' : ok === false ? 'no' : ''), ok === true ? '✓' : ok === false ? '✗' : '•'));
+      } else li.appendChild(h('span', 'mark', '•'));
+      li.appendChild(h('span', '', line.replace(/\*/g, '×')));
+      const del = h('button', 'alt', 'borrar'); del.onclick = () => { a.work.splice(k, 1); draw(); };
+      li.appendChild(del);
+      list.appendChild(li);
+    });
+  };
+  const entry = h('div', 'entry');
+  const inp = h('input'); inp.placeholder = 'Ej.: 6 × 8 = 48';
+  const add = h('button', '', 'Anotar');
+  const commit = () => { const v = inp.value.trim(); if (!v) return; a.work.push(v); inp.value = ''; draw(); inp.focus(); };
+  add.onclick = commit;
+  inp.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); commit(); } };
+  entry.append(inp, add);
+  const keys = h('div', 'keys');
+  ['×', ':', '+', '−', '='].forEach(k => {
+    const b = h('button', '', k);
+    b.onclick = () => { inp.value += ` ${k} `; inp.focus(); };
+    keys.appendChild(b);
+  });
+  s.append(list, entry, keys);
+  draw();
+  return s;
+}
+
+const isRight = (q, a) => numbersIn(a.answer).includes(q.expected);
+
+function solutionBox(q) {
+  const s = h('div', 'solution');
+  s.appendChild(h('b', '', 'Cómo se resuelve'));
+  q.solution.forEach(l => s.appendChild(h('p', '', l)));
+  if (q.model) s.appendChild(h('p', '', (q.type === 'blank' ? 'Explicación: ' : 'Respuesta: ') + q.model));
+  return s;
+}
+
+function showVerdict(fb, q, a) {
+  const ok = isRight(q, a);
+  fb.appendChild(h('p', 'verdict ' + (ok ? 'ok' : 'no'), ok ? '✓ ¡Muy bien!' : `✗ No es correcto. La respuesta es ${F(q.expected)}.`));
+  fb.appendChild(solutionBox(q));
+  if (ok) { const m = $('#mascot'); m.classList.remove('jump'); void m.offsetWidth; m.classList.add('jump'); }
+}
+
+// ---------- results ----------
+function results() {
+  card.innerHTML = '';
+  const good = qs.filter((q, k) => isRight(q, ans[k])).length;
+  const head = h('div', 'start');
+  head.appendChild(h('div', 'score', `${good} / ${qs.length}`));
+  head.appendChild(h('h2', '', good >= 16 ? '¡Excelente!' : good >= 12 ? '¡Muy bien!' : '¡Buen trabajo! Repasá las que te costaron.'));
+  card.appendChild(head);
+  const rv = h('div', 'review');
+  qs.forEach((q, k) => {
+    const a = ans[k], ok = isRight(q, a);
+    const it = h('div', 'item ' + (ok ? 'ok' : 'no'));
+    it.appendChild(h('p', 'group-title', `Pregunta ${k + 1} · ${G[q.g].split('.')[0]}${q.letter ? q.letter : ''}`));
+    it.appendChild(h('p', 'qtext', (q.context ? q.context + ' ' : '') + q.text + (q.type === 'calc' ? ' =' : '')));
+    it.appendChild(h('p', 'mine', `${ok ? '✓' : '✗'} Tu respuesta: ${a.answer || '(sin respuesta)'}`));
+    if (a.work.length) {
+      const ul = h('p', 'mine', 'Tus cuentas: ' + a.work.map(l => {
+        const c = checkLine(l); return l.replace(/\*/g, '×') + (c === true ? ' ✓' : c === false ? ' ✗' : '');
+      }).join('   ·   '));
+      it.appendChild(ul);
+    }
+    if (a.expl) it.appendChild(h('p', 'mine', 'Tu explicación: ' + a.expl));
+    it.appendChild(solutionBox(q));
+    rv.appendChild(it);
+  });
+  card.appendChild(rv);
+  const act = h('div', 'actions');
+  const again = h('button', 'alt', '↻ Volver al inicio'); again.onclick = startScreen;
+  const more = h('button', 'go', '🔁 Más práctica con otros números'); more.onclick = () => begin('practice');
+  act.append(again, more);
+  card.appendChild(act);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+window.__prueba = { examQuestions, practiceQuestions, checkLine, numbersIn, begin, results, state: () => ({ mode, qs, ans, at }) };
+startScreen();
+})();
+</script>
+</body>
+</html>

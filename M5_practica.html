@@ -193,12 +193,34 @@ function qBookProblems(i) {
   };
 }
 
+
+// Bigger round numbers whose "small division" has two digits (350 : 5 -> 35 : 5, 2.700 : 3 -> 27 : 3).
+// The helper is money: 350 is 35 coins of $10, 2.700 is 27 bills of $100.
+function qBills(i) {
+  const tens = [[35, 5], [24, 4], [42, 6], [28, 7], [45, 5], [32, 4], [18, 3], [21, 3]];
+  const hundreds = [[27, 3], [24, 4], [18, 3], [16, 2], [35, 5], [12, 4], [36, 6], [14, 2]];
+  const z = i < 2 ? 10 : 100;
+  const [s, K] = pick(i < 2 ? tens : hundreds), N = s * z, r = N / K;
+  const what = z === 10 ? `${s} monedas de $10` : `${s} billetes de $100`;
+  const base = {
+    ...one(N, K), hintPic: () => moneyPic([[z, s]]),
+    hint: `${fmt(N)} son ${what}. Repartilos entre ${K}: ${s} : ${K} (podés usar la 🔢 Tabla). Después volvé a poner ${z === 10 ? 'el cero' : 'los dos ceros'}.`,
+    why: `${fmt(N)} son ${what}. ${s} : ${K} = ${s / K}, entonces ${fmt(N)} : ${K} = ${fmt(r)}. Comprobamos: ${K} × ${fmt(r)} = ${fmt(N)}.`,
+  };
+  if (i === 4) {
+    const KIDS = { 2: 'Dos', 3: 'Tres', 4: 'Cuatro', 5: 'Cinco', 6: 'Seis' };
+    return { ...base, prompt: `${KIDS[K]} hermanos recibieron $${fmt(N)} de regalo y lo reparten en partes iguales. ¿Cuánto le toca a cada uno?`, labels: ['$ cada uno'] };
+  }
+  return { ...base, prompt: 'Resolvé. Si te cuesta, pensalo con plata.' };
+}
+
 const MISSION_LEVELS = [
   { name: 'Tres reglas', make: qRules },
   { name: 'De chico a grande', make: qFamily },
   { name: 'Desarmar', make: qSplit },
   { name: 'Mitades', make: qHalves },
   { name: 'Problemas del libro', make: qBookProblems },
+  { name: 'Con billetes y monedas', make: qBills },
 ];
 startPractice({ key: 'mision5-practica', levels: MISSION_LEVELS });
 </script>
