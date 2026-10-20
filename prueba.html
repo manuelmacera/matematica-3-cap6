@@ -215,11 +215,25 @@ function practiceQuestions() {
   return qs;
 }
 
-// Groups stay in order 1 → 6; inside a group the questions are shuffled (except 4a / 4b, which go together).
+// One short "cómo se resuelve" clip per question type (made with other numbers, so it does not give the answer).
+const TYPES = {
+  1: ['Problemas de dos partes', 'clips/T1_dos_partes.mp4'],
+  2: ['Repartir plata', 'clips/T2_repartir_plata.mp4'],
+  3: ['El número escondido', 'clips/T3_numero_escondido.mp4'],
+  4: ['Sumar y restar números grandes', 'clips/T4_sumar_restar.mp4'],
+  5: ['Cálculos con números redondos', 'clips/T5_redondos.mp4'],
+  6: ['Multiplicar números de dos cifras', 'clips/T6_dos_cifras.mp4'],
+};
+
+// At most two questions per type. Groups stay in order 1 → 6; inside a group the order is shuffled
+// (except 4a / 4b, which go together).
 function arrange(qs) {
   const out = [];
   for (let g = 1; g <= 6; g++) {
-    const grp = qs.filter(q => q.g === g);
+    let grp = qs.filter(q => q.g === g);
+    if (g === 3) grp = [pick(grp.filter(q => q.letter !== 'c')), grp.find(q => q.letter === 'c')];   // one × or :, and the +
+    else if (g === 5) grp = [pick(grp.filter(q => q.text.includes('×'))), pick(grp.filter(q => q.text.includes(':')))];
+    else if (!grp.some(q => q.keep)) grp = shuffle(grp).slice(0, 2);
     out.push(...(grp.some(q => q.keep) ? grp : shuffle(grp)));
   }
   return out;
@@ -232,9 +246,9 @@ function startScreen() {
   card.innerHTML = '';
   const s = h('div', 'start');
   s.appendChild(h('h2', '', 'Prueba de práctica'));
-  s.appendChild(h('p', '', 'Son 18 preguntas, una por una, como en la hoja de práctica. Escribí tus cuentas en la hoja de cada pregunta y después la respuesta. Podés usar la 🔢 Tabla.'));
+  s.appendChild(h('p', '', 'Son 11 preguntas de 6 tipos. Antes de cada tipo hay un video cortito que muestra cómo se resuelve, con otros números. Escribí tus cuentas en la hoja de cada pregunta y después la respuesta. Podés usar la 🔢 Tabla.'));
   const modes = h('div', 'modes');
-  const m1 = h('button', 'mode main', '<b>📝 La prueba</b><span>Las mismas preguntas de la hoja. Las respuestas aparecen al final, como en una prueba de verdad.</span>');
+  const m1 = h('button', 'mode main', '<b>📝 La prueba</b><span>Preguntas de la hoja de práctica. Las respuestas aparecen al final, como en una prueba de verdad.</span>');
   const m2 = h('button', 'mode', '<b>🔁 Más práctica</b><span>Las mismas clases de preguntas con otros números. Después de cada una ves si está bien y cómo se resuelve.</span>');
   m1.onclick = () => begin('exam'); m2.onclick = () => begin('practice');
   modes.append(m1, m2); s.appendChild(modes);
@@ -244,13 +258,37 @@ function startScreen() {
 function begin(m) {
   mode = m;
   qs = arrange(m === 'exam' ? examQuestions() : practiceQuestions());
-  ans = qs.map(() => ({ work: [], answer: '', expl: '', checked: false }));
+  ans = qs.map(() => ({ work: [], answer: '', checked: false }));
+  seenIntro = new Set();
   at = 0; show();
+}
+
+let seenIntro = new Set();
+function videoEl(src) {
+  const v = h('video'); v.src = src; v.controls = true; v.playsInline = true; v.preload = 'metadata';
+  v.style.cssText = 'width:100%;border-radius:16px;background:#000;display:block';
+  return v;
+}
+function intro(g) {
+  card.innerHTML = '';
+  const s = h('div', 'start');
+  s.appendChild(h('p', 'group-title', `Tipo ${g} de 6`));
+  s.appendChild(h('h2', '', TYPES[g][0]));
+  s.appendChild(h('p', '', 'Mirá primero cómo se resuelve (con otros números). Después te toca a vos.'));
+  card.append(s, videoEl(TYPES[g][1]));
+  const act = h('div', 'actions');
+  const back = h('button', 'alt', '← Anterior'); back.disabled = at === 0;
+  back.onclick = () => { at--; show(); };
+  const go = h('button', 'go', 'Ya lo vi, ¡a resolver! →');
+  go.onclick = () => { seenIntro.add(g); show(); };
+  act.append(back, go);
+  card.appendChild(act);
 }
 
 // ---------- one question ----------
 function show() {
   const q = qs[at], a = ans[at];
+  if (!seenIntro.has(q.g)) return intro(q.g);
   card.innerHTML = '';
   const top = h('div', 'card-top');
   top.appendChild(h('h2', '', `Pregunta ${at + 1} de ${qs.length}`));
@@ -258,7 +296,16 @@ function show() {
   qs.forEach((_, k) => dots.appendChild(h('span', k === at ? 'now' : (ans[k].answer !== '' ? 'ok' : ''))));
   top.appendChild(dots);
   card.appendChild(top);
-  card.appendChild(h('p', 'group-title', G[q.g]));
+  const tbar = h('div', 'actions');
+  tbar.appendChild(h('p', 'group-title', G[q.g]));
+  const again = h('button', 'alt', '▶ Ver cómo se resuelve');
+  tbar.appendChild(again);
+  card.appendChild(tbar);
+  again.onclick = () => {
+    const open = card.querySelector('video');
+    if (open) { open.pause(); open.remove(); again.textContent = '▶ Ver cómo se resuelve'; return; }
+    const v = videoEl(TYPES[q.g][1]); tbar.after(v); v.play().catch(() => {}); again.textContent = '✕ Cerrar video';
+  };
   if (q.context) card.appendChild(h('div', 'context', q.context));
   if (q.type !== 'calc') card.appendChild(h('p', 'qtext', (q.letter ? q.letter + '. ' : '') + q.text));
 
@@ -275,10 +322,6 @@ function show() {
     row.appendChild(numBox(a));
     row.appendChild(h('span', '', q.after));
     ansBox.appendChild(row);
-    ansBox.appendChild(h('label', '', 'Explicación:'));
-    const ta = h('textarea', 'expl'); ta.value = a.expl; ta.placeholder = '¿Qué cuenta hiciste y por qué?';
-    ta.oninput = () => { a.expl = ta.value; };
-    ansBox.appendChild(ta);
   } else {
     const row = h('div', 'answer-row');
     row.appendChild(h('label', '', 'Respuesta:'));
@@ -349,7 +392,7 @@ function workSheet(a) {
     });
   };
   const entry = h('div', 'entry');
-  const inp = h('input'); inp.placeholder = 'Ej.: 6 × 8 = 48';
+  const inp = h('input'); inp.placeholder = 'Escribí una cuenta y tocá Anotar';
   const add = h('button', '', 'Anotar');
   const commit = () => { const v = inp.value.trim(); if (!v) return; a.work.push(v); inp.value = ''; draw(); inp.focus(); };
   add.onclick = commit;
@@ -372,7 +415,7 @@ function solutionBox(q) {
   const s = h('div', 'solution');
   s.appendChild(h('b', '', 'Cómo se resuelve'));
   q.solution.forEach(l => s.appendChild(h('p', '', l)));
-  if (q.model) s.appendChild(h('p', '', (q.type === 'blank' ? 'Explicación: ' : 'Respuesta: ') + q.model));
+  if (q.model) s.appendChild(h('p', '', (q.type === 'blank' ? 'Por qué: ' : 'Respuesta: ') + q.model));
   return s;
 }
 
@@ -389,7 +432,7 @@ function results() {
   const good = qs.filter((q, k) => isRight(q, ans[k])).length;
   const head = h('div', 'start');
   head.appendChild(h('div', 'score', `${good} / ${qs.length}`));
-  head.appendChild(h('h2', '', good >= 16 ? '¡Excelente!' : good >= 12 ? '¡Muy bien!' : '¡Buen trabajo! Repasá las que te costaron.'));
+  head.appendChild(h('h2', '', good >= 10 ? '¡Excelente!' : good >= 8 ? '¡Muy bien!' : '¡Buen trabajo! Repasá las que te costaron.'));
   card.appendChild(head);
   const rv = h('div', 'review');
   qs.forEach((q, k) => {
@@ -404,7 +447,6 @@ function results() {
       }).join('   ·   '));
       it.appendChild(ul);
     }
-    if (a.expl) it.appendChild(h('p', 'mine', 'Tu explicación: ' + a.expl));
     it.appendChild(solutionBox(q));
     rv.appendChild(it);
   });
