@@ -8,30 +8,15 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@600;800&display=swap">
 <link rel="stylesheet" href="practica.css">
 <style>
-/* Test page: start screen (two modes), one question per card with a blank "Tus cuentas" sheet where the
-   child writes her own working, then a results screen that shows each answer next to a worked solution. */
+/* Test page: start screen (two modes), a short "cómo se resuelve" clip before each question type, one question
+   per card with a blank for the answer, then a results screen that shows each answer next to a worked solution. */
 .group-title { font: 600 1.05rem var(--display); color: var(--ink-2); margin: 0; }
 .qtext { font-size: 1.2rem; font-weight: 800; margin: 0; }
 .qtext.calc { font: 600 2rem var(--display); }
 .context { background: var(--paper-2); border-radius: 12px; padding: 10px 14px; font-weight: 800; }
-.sheet { display: grid; gap: 8px; background: #fff; border: 2px dashed #cfc7b6; border-radius: 14px; padding: 12px; }
-.sheet h3 { margin: 0; font: 600 1rem var(--display); color: var(--ink-2); }
-.sheet ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
-.sheet li { font: 600 1.35rem var(--display); display: flex; align-items: center; gap: 10px; }
-.sheet li .mark { font-size: 1.1rem; }
-.sheet li .mark.ok { color: var(--good); }
-.sheet li .mark.no { color: var(--bad); }
-.sheet li button { min-height: 0; padding: 2px 10px; font-size: .85rem; }
-.sheet .entry { display: flex; gap: 8px; flex-wrap: wrap; }
-.sheet .entry input { flex: 1; min-width: 180px; font: 600 1.35rem var(--display); border: 3px solid var(--paper-2); border-radius: 12px; padding: 6px 10px; }
-.sheet .keys { display: flex; gap: 6px; flex-wrap: wrap; }
-.sheet .keys button { min-height: 40px; min-width: 46px; padding: 4px 10px; background: var(--paper-2); color: var(--ink); font-size: 1.2rem; }
 .answer-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font: 600 1.6rem var(--display); }
-.answer-row input.num { width: 6ch; font: 600 1.6rem var(--display); text-align: center; border: 3px solid var(--paper-2); border-radius: 12px; padding: 6px; }
-.answer-row input.sentence { flex: 1; min-width: 220px; font: 600 1.15rem var(--body); border: 3px solid var(--paper-2); border-radius: 12px; padding: 10px; }
+.answer-row input.num { background: #fff; color: var(--ink); width: 6ch; font: 600 1.6rem var(--display); text-align: center; border: 3px solid var(--paper-2); border-radius: 12px; padding: 6px; }
 .answer-row label { font: 600 1.1rem var(--display); color: var(--ink-2); }
-textarea.expl { width: 100%; min-height: 70px; font: 600 1.05rem var(--body); border: 3px solid var(--paper-2); border-radius: 12px; padding: 10px; }
-.sheet .entry input, .answer-row input, textarea.expl { background: #fff; color: var(--ink); }
 input:focus, textarea:focus { outline: none; border-color: var(--a) !important; }
 .solution { background: var(--good-soft); border-radius: 14px; padding: 12px 16px; display: grid; gap: 4px; }
 .solution b { color: var(--good); font-family: var(--display); }
@@ -87,18 +72,6 @@ input:focus, textarea:focus { outline: none; border-color: var(--a) !important; 
 const card = $('#card');
 const F = n => fmt(n);
 
-// Evaluate a line the child wrote, like "6 x 8 = 48" or "2.865 + 3.478 = 6.343".
-// Returns true / false when it is a calculation, null when it is not.
-function checkLine(s) {
-  let t = s.replace(/[×xX*]/g, '*').replace(/[:÷\/]/g, '/').replace(/[−–—]/g, '-')
-           .replace(/(\d)\.(?=\d{3}(?!\d))/g, '$1');
-  const sides = t.split('=');
-  if (sides.length < 2 || sides.some(p => !/^[\d\s+\-*/()]+$/.test(p) || !/\d/.test(p))) return null;
-  try {
-    const vals = sides.map(p => Function('"use strict"; return (' + p + ')')());
-    return vals.every(v => Number.isFinite(v) && Math.abs(v - vals[0]) < 1e-9);
-  } catch (e) { return null; }
-}
 // Numbers that appear in a sentence ("Hay 2.407 cuadernos" -> [2407]).
 const numbersIn = s => (s.match(/\d{1,3}(?:\.\d{3})+|\d+/g) || []).map(x => +x.replace(/\./g, ''));
 
@@ -246,7 +219,7 @@ function startScreen() {
   card.innerHTML = '';
   const s = h('div', 'start');
   s.appendChild(h('h2', '', 'Prueba de práctica'));
-  s.appendChild(h('p', '', 'Son 11 preguntas de 6 tipos. Antes de cada tipo hay un video cortito que muestra cómo se resuelve, con otros números. Escribí tus cuentas en la hoja de cada pregunta y después la respuesta. Podés usar la 🔢 Tabla.'));
+  s.appendChild(h('p', '', 'Son 11 preguntas de 6 tipos. Antes de cada tipo hay un video cortito que muestra cómo se resuelve, con otros números. Hacé las cuentas en tu cuaderno y completá la respuesta. Podés usar la 🔢 Tabla.'));
   const modes = h('div', 'modes');
   const m1 = h('button', 'mode main', '<b>📝 La prueba</b><span>Preguntas de la hoja de práctica. Las respuestas aparecen al final, como en una prueba de verdad.</span>');
   const m2 = h('button', 'mode', '<b>🔁 Más práctica</b><span>Las mismas clases de preguntas con otros números. Después de cada una ves si está bien y cómo se resuelve.</span>');
@@ -323,15 +296,17 @@ function show() {
     row.appendChild(h('span', '', q.after));
     ansBox.appendChild(row);
   } else {
+    // the answer sentence with a blank where the number goes: "Hay [  ] butacas en total."
+    const [before, after] = q.model.split(F(q.expected));
     const row = h('div', 'answer-row');
     row.appendChild(h('label', '', 'Respuesta:'));
-    const inp = h('input', 'sentence'); inp.value = a.answer; inp.placeholder = 'Escribí la respuesta con palabras';
-    inp.oninput = () => { a.answer = inp.value; };
-    row.appendChild(inp);
+    row.appendChild(h('span', '', before.trim()));
+    row.appendChild(numBox(a));
+    row.appendChild(h('span', '', after.trim()));
     ansBox.appendChild(row);
   }
-  const sheet = workSheet(a);
-  if (q.type === 'calc') card.append(ansBox, sheet); else card.append(sheet, ansBox);
+  // In practice she only fills in the answers (on the real test she writes the working on paper).
+  card.append(ansBox);
 
   const fb = h('div'); fb.id = 'fb'; card.appendChild(fb);
   if (mode === 'practice' && a.checked) showVerdict(fb, q, a);
@@ -351,11 +326,9 @@ function show() {
   } else {
     const next = h('button', at === qs.length - 1 ? 'go' : '', at === qs.length - 1 ? 'Terminar ✓' : 'Siguiente →');
     next.onclick = () => {
-      const needsWork = q.type === 'problem' && a.work.length === 0;
-      if ((a.answer === '' || needsWork) && !next.dataset.warned) {
+      if (a.answer === '' && !next.dataset.warned) {
         fb.className = 'feedback show info';
-        fb.textContent = a.answer === '' ? 'Todavía no escribiste la respuesta. Tocá otra vez para seguir igual.'
-                                         : 'Recordá anotar tus cuentas en la hoja. Tocá otra vez para seguir igual.';
+        fb.textContent = 'Todavía no completaste la respuesta. Tocá otra vez para seguir igual.';
         next.dataset.warned = '1'; return;
       }
       if (at === qs.length - 1) results(); else { at++; show(); }
@@ -370,43 +343,6 @@ function numBox(a) {
   const inp = h('input', 'num'); inp.inputMode = 'numeric'; inp.value = a.answer;
   inp.oninput = () => { inp.value = inp.value.replace(/[^\d.]/g, ''); a.answer = inp.value; };
   return inp;
-}
-
-// The child's own working: she writes each calculation; in practice mode each line is checked.
-function workSheet(a) {
-  const s = h('div', 'sheet');
-  s.appendChild(h('h3', '', '✏️ Tus cuentas'));
-  const list = h('ul');
-  const draw = () => {
-    list.innerHTML = '';
-    a.work.forEach((line, k) => {
-      const li = h('li');
-      if (mode === 'practice') {
-        const ok = checkLine(line);
-        li.appendChild(h('span', 'mark ' + (ok === true ? 'ok' : ok === false ? 'no' : ''), ok === true ? '✓' : ok === false ? '✗' : '•'));
-      } else li.appendChild(h('span', 'mark', '•'));
-      li.appendChild(h('span', '', line.replace(/\*/g, '×')));
-      const del = h('button', 'alt', 'borrar'); del.onclick = () => { a.work.splice(k, 1); draw(); };
-      li.appendChild(del);
-      list.appendChild(li);
-    });
-  };
-  const entry = h('div', 'entry');
-  const inp = h('input'); inp.placeholder = 'Escribí una cuenta y tocá Anotar';
-  const add = h('button', '', 'Anotar');
-  const commit = () => { const v = inp.value.trim(); if (!v) return; a.work.push(v); inp.value = ''; draw(); inp.focus(); };
-  add.onclick = commit;
-  inp.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); commit(); } };
-  entry.append(inp, add);
-  const keys = h('div', 'keys');
-  ['×', ':', '+', '−', '='].forEach(k => {
-    const b = h('button', '', k);
-    b.onclick = () => { inp.value += ` ${k} `; inp.focus(); };
-    keys.appendChild(b);
-  });
-  s.append(list, entry, keys);
-  draw();
-  return s;
 }
 
 const isRight = (q, a) => numbersIn(a.answer).includes(q.expected);
@@ -441,12 +377,6 @@ function results() {
     it.appendChild(h('p', 'group-title', `Pregunta ${k + 1} · ${G[q.g].split('.')[0]}${q.letter ? q.letter : ''}`));
     it.appendChild(h('p', 'qtext', (q.context ? q.context + ' ' : '') + q.text + (q.type === 'calc' ? ' =' : '')));
     it.appendChild(h('p', 'mine', `${ok ? '✓' : '✗'} Tu respuesta: ${a.answer || '(sin respuesta)'}`));
-    if (a.work.length) {
-      const ul = h('p', 'mine', 'Tus cuentas: ' + a.work.map(l => {
-        const c = checkLine(l); return l.replace(/\*/g, '×') + (c === true ? ' ✓' : c === false ? ' ✗' : '');
-      }).join('   ·   '));
-      it.appendChild(ul);
-    }
     it.appendChild(solutionBox(q));
     rv.appendChild(it);
   });
@@ -459,7 +389,7 @@ function results() {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-window.__prueba = { examQuestions, practiceQuestions, checkLine, numbersIn, begin, results, state: () => ({ mode, qs, ans, at }) };
+window.__prueba = { examQuestions, practiceQuestions, numbersIn, begin, results, state: () => ({ mode, qs, ans, at }) };
 startScreen();
 })();
 </script>
